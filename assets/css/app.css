@@ -402,7 +402,7 @@
 
 /* ---------- Overlay (mobile sidebar / drawer scrim) ---------- */
 .scrim {
-  position: fixed; inset: 0; background: var(--bg-overlay); z-index: 45;
+  position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-overlay) 60%, transparent); z-index: 45;
   opacity: 0; visibility: hidden; transition: opacity var(--transition-base);
 }
 .scrim.is-open { opacity: 1; visibility: visible; }
@@ -461,7 +461,7 @@
 /* ==========================================================================
    Modal (centered dialog) + Organization picker
    ========================================================================== */
-.modal-scrim { position: fixed; inset: 0; background: var(--bg-overlay); z-index: 55; opacity: 0; visibility: hidden; transition: opacity var(--transition-base); backdrop-filter: blur(2px); }
+.modal-scrim { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-overlay) 60%, transparent); z-index: 55; opacity: 0; visibility: hidden; transition: opacity var(--transition-base); backdrop-filter: blur(2px); }
 .modal-scrim.is-open { opacity: 1; visibility: visible; }
 .modal {
   position: fixed; z-index: 56; left: 50%; top: 50%; transform: translate(-50%, -48%) scale(0.98);
