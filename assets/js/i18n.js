@@ -13,7 +13,7 @@
   var DICT = {
     "uz-latn": {
       /* App / brand */
-      "app.name": "Budjet Passport",
+      "app.name": "Passport Budjet",
       "app.subtitle": "Tashkilot kabineti",
       "app.org": "Respublika ixtisoslashtirilgan gematologiya ilmiy-amaliy tibbiyot markazi",
       "app.org_short": "RIGIATM",
@@ -258,7 +258,7 @@
 
   /* ---- uz-cyrl (Uzbek Cyrillic) ---- */
   DICT["uz-cyrl"] = {
-    "app.name": "Бюджет Паспорт", "app.subtitle": "Ташкилот кабинети",
+    "app.name": "Паспорт Бюджет", "app.subtitle": "Ташкилот кабинети",
     "app.org": "Республика ихтисослаштирилган гематология илмий-амалий тиббиёт маркази", "app.org_short": "РИГИАТМ",
     "g.name": "Ташкилот номи", "g.stir": "СТИР рақами", "g.founded": "Ташкил этилган сана",
     "g.direction": "Йўналиши", "g.oked": "Асосий фаолият тури (ОКЕД)", "g.classification": "Ташкилот классификацияси",
@@ -348,7 +348,7 @@
 
   /* ---- ru (Russian) ---- */
   DICT["ru"] = {
-    "app.name": "Бюджет Паспорт", "app.subtitle": "Кабинет организации",
+    "app.name": "Паспорт Бюджет", "app.subtitle": "Кабинет организации",
     "app.org": "Республиканский специализированный научно-практический медицинский центр гематологии", "app.org_short": "РСНПМЦГ",
     "g.name": "Наименование организации", "g.stir": "ИНН (СТИР)", "g.founded": "Дата основания",
     "g.direction": "Направление", "g.oked": "Основной вид деятельности (ОКЭД)", "g.classification": "Классификация организации",
