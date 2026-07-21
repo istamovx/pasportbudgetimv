@@ -202,23 +202,45 @@
     return page;
   }
 
+  function accountsTbl(items) {
+    return UI.DataTable({
+      sticky: true,
+      columns: [
+        { key: "i", label: "#", render: function (r) { return String(r.i); } },
+        { key: "n", label: t("acc.number"), strong: true, render: function (r) { return h("span", { class: "mono", text: r.n }); } }
+      ],
+      rows: items.map(function (n, i) { return { i: i + 1, n: n }; })
+    });
+  }
+  function openAccountsDrawer() {
+    var f = D.general.funding;
+    UI.openDrawer({
+      title: t("acc.number") + "lari", desc: t("app.org"), footer: false,
+      body: [
+        h("div", { class: "field__label mb-md", text: t("general.bank_budget") + " (" + f.budgetAccounts.length + ")" }),
+        accountsTbl(f.budgetAccounts),
+        h("div", { class: "field__label mb-md", style: "margin-top:var(--spacing-2xl)", text: t("general.bank_offbudget") + " (" + f.offBudgetAccounts.length + ")" }),
+        accountsTbl(f.offBudgetAccounts)
+      ]
+    });
+  }
   function accountsCard() {
     var f = D.general.funding;
-    function tbl(items) {
-      return UI.DataTable({
-        sticky: true,
-        columns: [
-          { key: "i", label: "#", render: function (r) { return String(r.i); } },
-          { key: "n", label: t("acc.number"), strong: true, render: function (r) { return h("span", { class: "mono", text: r.n }); } }
-        ],
-        rows: items.map(function (n, i) { return { i: i + 1, n: n }; })
-      });
+    function statRow(labelKey, count) {
+      return h("div", { class: "acc-stat" }, [
+        h("div", { class: "acc-stat__icon" }, UI.icon("wallet")),
+        h("div", { class: "acc-stat__body" }, [
+          h("div", { class: "acc-stat__label", text: t(labelKey) }),
+          h("div", { class: "acc-stat__value", text: Fmt.num(count) + " " + t("common.units") })
+        ])
+      ]);
     }
     return h("div", { class: "card" }, [
-      cardHead("general.bank_budget", { subtitle: t("general.bank_offbudget") }),
-      h("div", { class: "card__body", style: "display:flex;flex-direction:column;gap:var(--spacing-2xl)" }, [
-        h("div", {}, [h("div", { class: "field__label mb-md", text: t("general.bank_budget") + " (" + f.budgetAccounts.length + ")" }), tbl(f.budgetAccounts)]),
-        h("div", {}, [h("div", { class: "field__label mb-md", text: t("general.bank_offbudget") + " (" + f.offBudgetAccounts.length + ")" }), tbl(f.offBudgetAccounts)])
+      cardHead("general.bank_budget", {}),
+      h("div", { class: "card__body", style: "display:flex;flex-direction:column;gap:var(--spacing-lg)" }, [
+        statRow("general.bank_budget", f.budgetAccounts.length),
+        statRow("general.bank_offbudget", f.offBudgetAccounts.length),
+        UI.Button({ label: t("acc.view_all"), variant: "secondary", icon: "chevron-right", onClick: openAccountsDrawer })
       ])
     ]);
   }

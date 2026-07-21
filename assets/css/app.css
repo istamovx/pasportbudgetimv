@@ -200,6 +200,13 @@
 .kv__val--empty { color: var(--text-placeholder); font-style: italic; }
 .kv__val.strong { font-weight: var(--font-weight-semibold); }
 
+/* Bank account summary rows (full list opens in a right drawer) */
+.acc-stat { display: flex; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-lg); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); background: var(--bg-secondary-subtle, var(--bg-secondary)); }
+.acc-stat__icon { width: 40px; height: 40px; flex: none; border-radius: var(--radius-md); display: grid; place-items: center; background: var(--utility-brand-50); color: var(--utility-brand-600); border: 1px solid var(--utility-brand-100); }
+.acc-stat__icon .icon { width: 20px; height: 20px; }
+.acc-stat__label { font-size: var(--text-sm); color: var(--text-secondary); font-weight: var(--font-weight-medium); }
+.acc-stat__value { font-size: var(--text-lg); font-weight: var(--font-weight-semibold); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
 /* Bank account number lists */
 .acc-list { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
 .acc-num {
