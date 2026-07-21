@@ -1,140 +1,188 @@
 /* ==========================================================================
-   Mock data (single organization). Structured so a future Admin role can
-   swap this for a multi-org array without changing components.
-   Labels use i18n keys where the value is a known enum; free text stays plain.
+   Organization data — Respublika Ixtisoslashtirilgan Gematologiya
+   Ilmiy-Amaliy Tibbiyot Markazi (real passport data, 2026 report).
+   Structured so a future Admin role can hold an array of such objects.
+   Empty fields are null/[] -> rendered as EmptyState.
    ========================================================================== */
 (function (global) {
   "use strict";
 
-  var MONTHS = ["chart.jan", "chart.feb", "chart.mar", "chart.apr", "chart.may", "chart.jun",
-    "chart.jul", "chart.aug", "chart.sep", "chart.oct", "chart.nov", "chart.dec"];
-
   global.DATA = {
-    meta: { orgId: "ttm-7", reportYear: 2025, updatedAt: "2025-12-31" },
-    monthKeys: MONTHS,
+    meta: { orgId: "rigiatm", reportYear: 2026, updatedAt: "2026-04-16" },
+    monthKeys: ["chart.jan", "chart.feb", "chart.mar", "chart.apr", "chart.may", "chart.jun",
+      "chart.jul", "chart.aug", "chart.sep", "chart.oct", "chart.nov", "chart.dec"],
 
     general: {
+      /* 1.1 Asosiy ma'lumotlar */
       basic: [
-        { key: "general.f.name", value: "app.org", i18nValue: true },
-        { key: "general.f.inn", value: "301 245 678" },
-        { key: "general.f.type", value: "general.type.medical", i18nValue: true },
-        { key: "general.f.region", value: "Toshkent shahri, Yunusobod tumani", ru: "г. Ташкент, Юнусабадский район", cyr: "Тошкент шаҳри, Юнусобод тумани" },
-        { key: "general.f.head", value: "A. R. Karimov" },
-        { key: "general.f.founded", value: "1998" }
+        { key: "g.name", value: "app.org", i18nValue: true },
+        { key: "g.stir", value: "201190732" },
+        { key: "g.founded", value: "25.04.2000" },
+        { key: "g.direction", value: "Sog‘liqni saqlash", ru: "Здравоохранение", cyr: "Соғлиқни сақлаш" },
+        { key: "g.oked", value: "72110" },
+        { key: "g.classification", value: "G71" },
+        { key: "g.ministry", value: "O‘zbekiston Respublikasi Sog‘liqni saqlash vazirligi", ru: "Министерство здравоохранения Республики Узбекистан", cyr: "Ўзбекистон Республикаси Соғлиқни сақлаш вазирлиги" },
+        { key: "g.cadastre_date", value: "14.12.2022" },
+        { key: "g.doc_organ", value: "Prezident Farmoni", ru: "Указ Президента", cyr: "Президент Фармони" },
+        { key: "g.doc_number", value: "5130" },
+        { key: "g.doc_date", value: "27.05.2021" },
+        { key: "g.stat_cert", value: "Mavjud", ru: "Имеется", cyr: "Мавжуд" },
+        { key: "g.cadastre_doc", value: "Toshkent shahar Hokimining 14.08.2015 y. № 732 qarori", ru: "Решение хокима г. Ташкента № 732 от 14.08.2015", cyr: "Тошкент шаҳар Ҳокимининг 14.08.2015 й. № 732 қарори" },
+        { key: "g.cadastre_organ", value: "Davlat kadastrlari palatasining Toshkent shahar boshqarmasi", ru: "Ташкентское городское управление Палаты государственных кадастров", cyr: "Давлат кадастрлари палатасининг Тошкент шаҳар бошқармаси" },
+        { key: "g.rental", value: "Ijarada turmaydi", ru: "Не в аренде", cyr: "Ижарада турмайди" }
       ],
-      contact: [
-        { key: "general.f.phone", value: "+998 71 234 56 78" },
-        { key: "general.f.email", value: "info@ttm7.uz" },
-        { key: "general.f.address", value: "Toshkent sh., Amir Temur ko‘chasi, 108", ru: "г. Ташкент, ул. Амира Темура, 108", cyr: "Тошкент ш., Амир Темур кўчаси, 108" },
-        { key: "general.f.website", value: "ttm7.uz" }
+      /* 1.2 Faoliyati va rejimi */
+      activity: [
+        { key: "g.language", value: "O‘zbek", ru: "Узбекский", cyr: "Ўзбек" },
+        { key: "g.work_days", value: "5 kunlik (36 soat)", ru: "5-дневная (36 часов)", cyr: "5 кунлик (36 соат)" },
+        { key: "g.work_regime", value: "6 soatlik", ru: "6-часовой", cyr: "6 соатлик" },
+        { key: "g.org_type", value: "Davlat tashkiloti", ru: "Государственная организация", cyr: "Давлат ташкилоти" },
+        { key: "g.specialization", value: "Biotexnologiyalar sohasidagi ilmiy tadqiqotlar va eksperimental ishlanmalar", ru: "Научные исследования и экспериментальные разработки в области биотехнологий", cyr: "Биотехнологиялар соҳасидаги илмий тадқиқотлар ва экспериментал ишланмалар" },
+        { key: "g.mahalla_count", value: null },
+        { key: "g.population", value: null }
       ],
-      kpi: { staffTotal: 420, occupied: 372, vacant: 48, debt: 1250468378.95 }
-    },
-
-    // Money movement (Tibbiy sug'urta / Mablag')
-    mib: {
-      movement: [
-        { key: "mib.start_balance", budget: 4200000000, paid: 1850000000 },
-        { key: "mib.income", budget: 18450000000, paid: 7320000000 },
-        { key: "mib.expense", budget: 17100000000, paid: 6980000000 },
-        { key: "mib.end_balance", budget: 5550000000, paid: 2190000000 }
-      ],
-      sources: [
-        { key: "src.state", budget: 15200000000, paid: 0 },
-        { key: "src.paid_services", budget: 0, paid: 5900000000 },
-        { key: "src.insurance", budget: 2600000000, paid: 980000000 },
-        { key: "src.grants", budget: 650000000, paid: 440000000 }
-      ]
-    },
-
-    staff: {
-      byPosition: [
-        { key: "staff.cat.management", value: 64 },
-        { key: "staff.cat.production", value: 268 },
-        { key: "staff.cat.technical", value: 88 }
-      ],
-      compare: [
-        { key: "staff.cat.management", staff: 70, occupied: 64, vacant: 6 },
-        { key: "staff.cat.production", staff: 290, occupied: 268, vacant: 22 },
-        { key: "staff.cat.technical", staff: 100, occupied: 88, vacant: 12 }
-      ],
-      byTarif: [
-        { key: "staff.tarif.doctors", value: 96 },
-        { key: "staff.tarif.mid_med", value: 172 },
-        { key: "staff.tarif.junior_med", value: 84 },
-        { key: "staff.tarif.pedagog", value: 22 },
-        { key: "staff.tarif.others", value: 46 }
-      ]
-    },
-
-    debts: {
-      kpi: { debt: 1250468378.95, surcharge: 342180000, overpay: 128940000 },
-      series: {
-        debt: [980, 1020, 1110, 1180, 1260, 1305, 1290, 1250, 1230, 1275, 1310, 1250].map(function (v) { return v * 1e6; }),
-        surcharge: [210, 240, 260, 255, 300, 320, 335, 342, 330, 338, 350, 342].map(function (v) { return v * 1e6; }),
-        overpay: [60, 72, 80, 95, 110, 118, 125, 128, 132, 126, 130, 129].map(function (v) { return v * 1e6; })
-      },
-      rows: [
-        { cp: "Toshkent Issiqlik Manbalari", date: "2025-11-30", amount: 420680000, status: "overdue" },
-        { cp: "Hududgaz AJ", date: "2025-12-05", amount: 318420000, status: "pending" },
-        { cp: "Suvsoz AJ", date: "2025-12-10", amount: 214560000, status: "active" },
-        { cp: "Uzbektelekom", date: "2025-12-15", amount: 96808378.95, status: "new" },
-        { cp: "Regional Elektr Tarmoqlari", date: "2025-12-20", amount: 199999999, status: "pending" }
-      ]
-    },
-
-    utilities: {
-      rows: [
-        { key: "util.electricity", consumption: "482 400 kVt", cost: 1740000000, status: "active" },
-        { key: "util.gas", consumption: "128 900 m³", cost: 690000000, status: "active" },
-        { key: "util.water", consumption: "34 200 m³", cost: 214000000, status: "pending" },
-        { key: "util.heating", consumption: "9 800 Gkal", cost: 1120000000, status: "overdue" },
-        { key: "util.internet", consumption: "—", cost: 84000000, status: "active" }
-      ]
-    },
-
-    material: {
-      transport: [
-        { key: "veh.ambulance", value: 8 },
-        { key: "veh.car", value: 5 },
-        { key: "veh.bus", value: 2 },
-        { key: "veh.truck", value: 3 }
-      ],
-      vehicles: [
-        { model: "GAZ Sobol 4x4", type: "veh.ambulance", year: 2021, plate: "01 A 234 BC" },
-        { model: "Chevrolet Cobalt", type: "veh.car", year: 2022, plate: "01 B 118 AA" },
-        { model: "Isuzu Bogdan", type: "veh.bus", year: 2019, plate: "01 C 900 DE" },
-        { model: "Ford Transit", type: "veh.ambulance", year: 2023, plate: "01 A 771 KM" },
-        { model: "GAZ 3302", type: "veh.truck", year: 2018, plate: "01 D 452 GH" }
-      ]
-    },
-
-    health: {
-      bedByType: {
-        labels: ["health.stationary", "health.ambulatory"],
-        beds: [180, 0],
-        planBedDays: [58800, 0],
-        factBedDays: [55400, 0],
-        patients: [4820, 18640]
-      },
-      byBudget: {
-        // metric compared across budget / paid / total
-        metrics: [
-          { key: "health.beds", budget: 150, paid: 30 },
-          { key: "health.patients", budget: 3960, paid: 860 }
+      /* 1.3 Mablag' ajratilishi */
+      funding: {
+        rows: [
+          { key: "g.district", value: "Chilonzor tumani", ru: "Чиланзарский район", cyr: "Чилонзор тумани" },
+          { key: "g.sector_code", value: "Ixtisoslashtirilgan markazlar, shifoxonalar va koykali dispanserlar", ru: "Специализированные центры, больницы и коечные диспансеры", cyr: "Ихтисослаштирилган марказлар, шифохоналар ва койкали диспансерлар" },
+          { key: "g.last_audit", value: "30.01.2026" },
+          { key: "g.audit_organ", value: "Davlat tibbiy sug‘urtasi jamg‘armasi", ru: "Фонд государственного медицинского страхования", cyr: "Давлат тиббий суғуртаси жамғармаси" }
+        ],
+        budgetAccounts: [
+          "100010860262947073201054001",
+          "100010860262947075100054003",
+          "100010860262947075200254001"
+        ],
+        offBudgetAccounts: [
+          "500010860262947073201054001", "302810860262947075300254014", "401310860262947073201054001",
+          "401410860262947073201054001", "400110978262947073201054001", "401410643262947073201054001",
+          "400110860262947073201054004", "401410860262947073201054002", "400310860262947073201054002",
+          "302810860262947075300254027", "500010840262947073201054001", "400210860262947073201054001",
+          "401410840262947073201054001", "302810860262947075300254032", "401722860262947073201054003",
+          "302810860262947075300254031", "302810860262947075300254030", "400110840262947073201054001",
+          "400910860262947073201054001", "400310860262947073201054001", "401310860262947073201054003",
+          "401410978262947073201054002", "302810860262947075300254028", "400410860262947073201054001",
+          "401310860262947073201337001"
         ]
       },
-      bedDayExecution: 0.942 // 94.2%
+      /* 1.4 Aloqa */
+      contact: [
+        { key: "g.postal_index", value: "100000" },
+        { key: "g.website", value: "hematology.uz", url: "https://www.hematology.uz/" },
+        { key: "g.email", value: "rigiatm@exat.uz" },
+        { key: "g.head", value: "Islamov Miralisher Sadriddinovich" },
+        { key: "g.head_phone", value: "+998 90 347 60 00" },
+        { key: "g.accountant", value: "Xolmanov Abdug‘affar Abduvoitovich" },
+        { key: "g.accountant_phone", value: "+998 99 530 33 47" }
+      ],
+      deputies: [
+        { name: "Maxmudova Aziza Djumanovna", phone: "+998 93 550 00 92" },
+        { name: "Kayumov Abduraxman Abdumavlyanovich", phone: "+998 90 984 00 87" },
+        { name: "Zairov Sherzod Gulyamnazirovich", phone: "+998 97 754 00 89" },
+        { name: "Meyliyev Erkin Tursunovich", phone: "+998 99 111 62 64" }
+      ],
+      /* 1.5 Filiallar va binolar */
+      branches: [],
+      /* 1.6 DTS moliyalashtirish (Tibbiy sug'urta / Mablag') */
+      dts: {
+        accounts: [
+          { key: "acc.insurance", start: 0, income: 3560378408, expense: 3421343491, end: 139034917 },
+          { key: "acc.personal", start: 0, income: 572845, expense: 572845, end: null },
+          { key: "acc.food", start: 23434642, income: 20731355, expense: 9880475, end: 34285522 },
+          { key: "acc.main", start: 1086477064, income: 6925803447, expense: null, end: null }
+        ],
+        contract: { number: "130/2026", date: "03.01.2026", total: 34604000 }
+      }
     },
 
     location: {
-      address: { value: "Toshkent sh., Amir Temur ko‘chasi, 108", ru: "г. Ташкент, ул. Амира Темура, 108", cyr: "Тошкент ш., Амир Темур кўчаси, 108" },
-      lat: 41.311, lng: 69.279,
-      branches: [
-        { name: "Bosh bino", ru: "Главный корпус", cyr: "Бош бино", area: "6 400 m²", staff: 260 },
-        { name: "Poliklinika", ru: "Поликлиника", cyr: "Поликлиника", area: "2 100 m²", staff: 96 },
-        { name: "Laboratoriya bloki", ru: "Лабораторный блок", cyr: "Лаборатория блоки", area: "820 m²", staff: 40 }
+      status: "new",
+      address: {
+        value: "Arnasoy ko‘chasi, Chilonzor-2, Chilonzor tumani, Toshkent, 100115",
+        ru: "Арнасайская улица, Чиланзар-2, Чиланзарский район, Ташкент, 100115",
+        cyr: "Арнасой кўчаси, Чилонзор-2, Чилонзор тумани, Тошкент, 100115"
+      },
+      city: "Toshkent shahri", district: "Chilonzor tumani",
+      lat: 41.2755, lng: 69.2044,
+      branches: []
+    },
+
+    /* 3. Kadrlar bilan ishlash (plan / band shtat / band jismoniy / vakant) */
+    staff: {
+      categories: [
+        { key: "staff.cat.management", plan: 16, occupied: 15, physical: 16, vacant: 1 },
+        { key: "staff.cat.production", plan: 513.5, occupied: 456.5, physical: 482, vacant: 57 },
+        { key: "staff.cat.technical", plan: 61.75, occupied: 85.25, physical: 101, vacant: -23.5 }
+      ],
+      byTarif: [
+        { key: "staff.tarif.others", plan: 76.25, occupied: 65.5, physical: 74, vacant: 10.75 },
+        { key: "staff.tarif.junior_med", plan: 141.5, occupied: 165.75, physical: 165, vacant: 0 },
+        { key: "staff.tarif.mid_med", plan: 228.75, occupied: 201.25, physical: 201, vacant: 27.5 },
+        { key: "staff.tarif.pedagog", plan: 1, occupied: 1, physical: 1, vacant: 0 }
+      ],
+      totals: { plan: 591.25, occupied: 556.75, physical: 599, vacant: 34.5 },
+      medStaff: { plan: 514, occupied: 490.25, physical: 524, vacant: 23.75 },
+      doctors: { plan: 143.75, occupied: 123.25, physical: 146, vacant: 20.5 }
+    },
+
+    /* 4. Moddiy texnik baza — transport (YHXBB) */
+    material: {
+      vehicles: [
+        { pass: "AAF 3781501", plate: "01 618 YBA", model: "Damas", color: "Ko‘k", reg: "2021-12-25", dept: "2-TRO‘ va IOB (Chilonzor)", inspection: "2027-03-04" },
+        { pass: "AAF 3781525", plate: "01 622 YBA", model: "Damas", color: "Oq", reg: "2021-12-25", dept: "2-TRO‘ va IOB (Chilonzor)", inspection: "2025-02-27" },
+        { pass: "AAF 3781503", plate: "01 172 HAA", model: "Damas", color: "Oq", reg: "2021-12-25", dept: "2-TRO‘ va IOB (Chilonzor)", inspection: "2027-03-04" },
+        { pass: "AAG 3253903", plate: "01 097 RLA", model: "Volkswagen Caddy 5", color: "Oq", reg: "2024-01-10", dept: "3-TRO‘ va IOB (Sirg‘ali)", inspection: "2027-03-04" },
+        { pass: "AAG 4080335", plate: "01 365 FMA", model: "Damas", color: "Oq", reg: "2024-05-29", dept: "4-TRO‘G (Uzbum)", inspection: "2027-03-04" }
+      ],
+      autoLimits: null
+    },
+
+    /* 5. Kommunal xarajatlar — bo'sh (Elektr/Gaz: No data) */
+    utilities: { rows: [] },
+
+    /* 6. Mavjud qarzlar */
+    debts: {
+      kpi: { debt: 0, surcharge: 0, overpay: 1250479115.57 },
+      rows: [
+        { date: "2026-04-16", district: "Chilonzor", debt: 0, surcharge: 0, overpay: 1250468378.95, status: "new" },
+        { date: "2026-04-16", district: "Sergeli", debt: 0, surcharge: 0, overpay: 10736.62, status: "new" },
+        { date: "2026-03-30", district: "Chilonzor", debt: 6657765.83, surcharge: 0, overpay: 791627131.43, status: "active" },
+        { date: "2026-03-30", district: "Sergeli", debt: 0, surcharge: 0, overpay: 10736.62, status: "active" }
       ]
+    },
+
+    /* 7. MIB (Majburiy ijro byurosi) ma'lumotlari — bo'sh */
+    mib: { rows: [] },
+
+    /* 8. Sog'liqni saqlash */
+    health: {
+      ambulatory: [
+        { key: "h.attached_total", v: 27 }, { key: "h.age_0_18", v: 21 }, { key: "h.age_18plus", v: 6 },
+        { key: "h.teens", v: 9 }, { key: "h.fertile_women", v: 9 }, { key: "h.births", v: 9 },
+        { key: "h.deaths", v: 93 }, { key: "h.physio", v: 9 }, { key: "h.free_meds", v: 10 }
+      ],
+      generalPopulation: null,
+      stationary: {
+        total: { beds: 229, planDays: 68990, factDays: 64260, exec: 93.14, patients: 5370, avgDays: 11.97, deaths: 62 },
+        budget: { beds: 182, planDays: 56770, factDays: 57674, exec: 101.58, patients: 4061, avgDays: 14.23, deaths: 45 },
+        paid: { beds: 47, planDays: 12220, factDays: 6586, exec: 53.82, patients: 1309, avgDays: 5.06, deaths: 17 }
+      },
+      facility: {
+        warehouses: 1,
+        rooms: [43, 1, 1, 3, 18, 1, 1, 1, 1, 3, 1],
+        equipment: [11, 15, 2],
+        areas: [1.00, 1.00, 57.86, 500.60, 16.10, 31.40, 22.20, 16.10, 98.06]
+      },
+      lab: [
+        { key: "lab.total", v: 453226 }, { key: "lab.biochem", v: 190515 }, { key: "lab.histo", v: 16491 },
+        { key: "lab.xray", v: 0 }, { key: "lab.molgen", v: 150100 }, { key: "lab.sero", v: 0 },
+        { key: "lab.clinical", v: 220902 }, { key: "lab.biological", v: 15048 }, { key: "lab.chemical", v: 0 },
+        { key: "lab.immuno", v: 95652 }, { key: "lab.other", v: 11873 }
+      ],
+      bloodService: null,
+      forensic: null,
+      emergency: null
     }
   };
 })(window);
