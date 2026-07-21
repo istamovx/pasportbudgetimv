@@ -202,6 +202,26 @@
 .map--dark .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
 @media (max-width: 640px) { .map { height: 300px; } }
 
+/* ---------- Forms (CRUD sections) ---------- */
+.form-section {
+  background: var(--bg-primary); border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-xs); overflow: hidden;
+}
+.form-section__title {
+  padding: var(--spacing-lg) var(--spacing-2xl); font-weight: var(--font-weight-semibold);
+  color: var(--text-primary); background: var(--bg-secondary-subtle, var(--bg-secondary));
+  border-bottom: 1px solid var(--border-secondary); border-left: 3px solid var(--fg-brand-primary);
+}
+.form-section__body { padding: var(--spacing-2xl); }
+.form-section__foot {
+  display: flex; justify-content: flex-end; padding: var(--spacing-lg) var(--spacing-2xl);
+  border-top: 1px solid var(--border-secondary); background: var(--bg-secondary-subtle, transparent);
+}
+.form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-xl) var(--spacing-2xl); }
+@media (max-width: 1024px) { .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+.mb-md { margin-bottom: var(--spacing-md); }
+
 /* ---------- Chart frame ---------- */
 .chart-frame { position: relative; width: 100%; }
 .chart-canvas-wrap { position: relative; width: 100%; }
