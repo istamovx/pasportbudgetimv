@@ -288,16 +288,61 @@
     }
   },
   "location": {
-    "status": "new",
-    "address": {
-      "value": "Arnasoy ko‘chasi, Chilonzor-2, Chilonzor tumani, Toshkent, 100115",
-      "ru": "Арнасайская улица, Чиланзар-2, Чиланзарский район, Ташкент, 100115",
-      "cyr": "Арнасой кўчаси, Чилонзор-2, Чилонзор тумани, Тошкент, 100115"
-    },
-    "city": "Toshkent shahri",
-    "district": "Chilonzor tumani",
-    "lat": 41.2755,
-    "lng": 69.2044,
+    "buildings": [
+      {
+        "no": 1,
+        "status": "new",
+        "name": "AK.NURMUXAMEDOV",
+        "city": "Toshkent shahri",
+        "district": "Yakkasaroy tumani",
+        "lat": 41.2755,
+        "lng": 69.2044,
+        "joylashuv": {
+          "address": "Arnasoy ko‘chasi, Chilonzor-2, Chilonzor tumani, Toshkent, 100115",
+          "geo": "G‘arb",
+          "lat": 69.1338515281,
+          "lng": 40.2249996357,
+          "fenceType": "Rabitssa to‘ri (to‘r panjara)",
+          "distanceKm": 5,
+          "viloyat": "Toshkent shahri",
+          "tuman": "Yakkasaroy tumani",
+          "fullAddress": "Toshkent shahri, Yakkasaroy tumani, Arnasoy ko‘chasi, 8-uy"
+        },
+        "bino": {
+          "count": 1,
+          "buildYear": 1998,
+          "floors": 5,
+          "area": 6400,
+          "material": "G‘isht",
+          "condition": "Qoniqarli"
+        },
+        "qavatlar": [],
+        "xonalar": [],
+        "kommunal": {
+          "electricity": true,
+          "gas": true,
+          "water": true,
+          "heating": true,
+          "sewage": true
+        },
+        "ijara": null,
+        "infratuzilma": {
+          "count": 9,
+          "items": [
+            "Suv ta’minoti",
+            "Elektr",
+            "Gaz",
+            "Kanalizatsiya",
+            "Internet",
+            "Telefon",
+            "Isitish",
+            "Yong‘in tizimi",
+            "Videokuzatuv"
+          ]
+        },
+        "polygon": null
+      }
+    ],
     "branches": []
   },
   "staff": {

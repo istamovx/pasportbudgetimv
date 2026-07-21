@@ -331,66 +331,243 @@
     });
   }
 
-  /* --- Location --- */
+  /* --- Location: building list + multi-step wizard --- */
   var locationMap = null;
+  var locState = { mode: "list", bIndex: 0, step: "joylashuv" };
+
+  var WIZ_STEPS = ["joylashuv", "bino", "qavatlar", "xonalar", "kommunal", "ijara", "infra", "polygon"];
+
+  function stepStatus(b, step) {
+    switch (step) {
+      case "joylashuv": return b.joylashuv ? { s: "done", n: null } : { s: "notstarted", n: null };
+      case "bino": return b.bino ? { s: "done", n: (b.bino.count || 1) } : { s: "notstarted", n: 0 };
+      case "qavatlar": return { s: b.qavatlar && b.qavatlar.length ? "done" : "notstarted", n: (b.qavatlar || []).length };
+      case "xonalar": return { s: b.xonalar && b.xonalar.length ? "done" : "na", n: (b.xonalar || []).length };
+      case "kommunal": return b.kommunal ? { s: "done", n: null } : { s: "notstarted", n: null };
+      case "ijara": return b.ijara ? { s: "done", n: 1 } : { s: "na", n: 0 };
+      case "infra": return { s: b.infratuzilma && b.infratuzilma.count ? "done" : "notstarted", n: b.infratuzilma ? b.infratuzilma.count : 0 };
+      case "polygon": return { s: b.polygon ? "done" : "notstarted", n: b.polygon ? 1 : 0 };
+    }
+    return { s: "notstarted", n: null };
+  }
+
   function renderLocation() {
+    return locState.mode === "wizard" ? renderBuildingWizard() : renderLocationList();
+  }
+
+  function renderLocationList() {
     var l = D.location;
     var page = h("div", { class: "page" });
-    page.appendChild(pageHead("page.location.title", "page.location.desc"));
+    page.appendChild(pageHead("page.location.title", "loc.page_desc", [
+      UI.Button({ label: t("loc.add_building"), variant: "primary", icon: "plus", onClick: function () {
+        l.buildings.push({ no: l.buildings.length + 1, status: "new", name: "Yangi bino", city: "—", district: "—", lat: 41.311, lng: 69.279, joylashuv: null, bino: null, qavatlar: [], xonalar: [], kommunal: null, ijara: null, infratuzilma: null, polygon: null });
+        navigate(current);
+      } })
+    ]));
 
-    var mapEl = h("div", { class: "map", id: "org-map" });
-    var mapCard = h("div", { class: "card" }, [
-      cardHead(t("general.f.address"), {
-        subtitle: loc(l.address),
-        extra: h("div", { class: "flex items-center gap-md" }, [
-          UI.StatusBadge(l.status || "new"),
-          UI.StatusBadge("", { variant: "brand", label: l.lat.toFixed(4) + ", " + l.lng.toFixed(4), dotless: true })
-        ]),
-        onEdit: function () {
-          openEdit(t("nav.location"), [
-            { label: t("general.f.address"), value: loc(l.address) },
-            { label: "Latitude", value: l.lat, type: "number" },
-            { label: "Longitude", value: l.lng, type: "number" }
-          ], function (v) { setLoc(l.address, v[0]); l.lat = num(v[1]); l.lng = num(v[2]); });
-        }
-      }),
-      h("div", { class: "card__body card__body--flush" }, [
-        h("div", { class: "kv" }, [
-          h("div", { class: "kv__key", text: t("general.f.region") }),
-          h("div", { class: "kv__val", text: l.city + " • " + l.district })
-        ]),
-        mapEl
-      ])
-    ]);
-    page.appendChild(h("div", { class: "section" }, mapCard));
+    // Asosiy joylashuv
+    var mainWrap = h("div", { class: "section" });
+    mainWrap.appendChild(secHead("", t("loc.main_location"), null));
+    mainWrap.lastChild.querySelector(".sec-head__title").appendChild(h("span", { class: "count-pill", text: String(l.buildings.length) }));
+    mainWrap.querySelector(".sec-head__num").remove();
+    var grid = h("div", { class: "cols", style: "--cols:3;--cols-md:2" });
+    l.buildings.forEach(function (b, i) { grid.appendChild(buildingCard(b, i)); });
+    mainWrap.appendChild(grid);
+    page.appendChild(mainWrap);
 
-    // 1.5 Filiallar joylashuvi (empty)
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
-      cardHead("general.branches", {}),
-      h("div", { class: "card__body card__body--flush" },
-        l.branches.length ? branchesTable(l.branches) : UI.EmptyState({ icon: "map" }))
-    ])));
-
-    requestAnimationFrame(function () { initLocationMap(mapEl, l); });
+    // Filiallar joylashuvi
+    var brWrap = h("div", { class: "section" });
+    brWrap.appendChild(secHead("", t("loc.branches_location"), null));
+    brWrap.lastChild.querySelector(".sec-head__title").appendChild(h("span", { class: "count-pill", text: String(l.branches.length) }));
+    brWrap.querySelector(".sec-head__num").remove();
+    brWrap.appendChild(h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" },
+      l.branches.length ? branchesTable(l.branches) : UI.EmptyState({ icon: "map" }))));
+    page.appendChild(brWrap);
     return page;
   }
 
-  function initLocationMap(el, l) {
-    if (!global.L || !document.body.contains(el)) return;
-    if (locationMap) { try { locationMap.remove(); } catch (e) {} locationMap = null; }
-    el.classList.toggle("map--dark", (document.documentElement.getAttribute("data-theme") === "dark"));
-    var map = global.L.map(el, { scrollWheelZoom: false }).setView([l.lat, l.lng], 15);
-    global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
-    var markerIcon = global.L.icon({
-      iconUrl: "assets/vendor/leaflet/images/marker-icon.png",
-      iconRetinaUrl: "assets/vendor/leaflet/images/marker-icon-2x.png",
-      shadowUrl: "assets/vendor/leaflet/images/marker-shadow.png",
-      iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-    });
-    global.L.marker([l.lat, l.lng], { icon: markerIcon }).addTo(map).bindPopup("<b>" + t("app.org") + "</b><br>" + loc(l.address));
-    locationMap = map;
-    map.on("click", function () { map.scrollWheelZoom.enable(); });
-    setTimeout(function () { try { map.invalidateSize(); } catch (e) {} }, 200);
+  function buildingCard(b, i) {
+    return h("div", { class: "bld-card" }, [
+      h("div", { class: "bld-card__top" }, [
+        h("div", { class: "bld-card__icon" }, UI.icon("map")),
+        h("span", { class: "bld-card__no", text: "#" + b.no }),
+        h("span", { class: "bld-card__spacer" }),
+        UI.StatusBadge(b.status || "new")
+      ]),
+      h("div", { class: "bld-card__name", text: b.name, title: b.name }),
+      h("div", { class: "bld-card__tags" }, [
+        h("span", { class: "bld-tag", text: b.city }),
+        h("span", { class: "bld-card__dot", text: "•" }),
+        h("span", { class: "bld-tag", text: b.district })
+      ]),
+      h("div", { class: "bld-card__actions" }, [
+        UI.Button({ icon: "edit", variant: "secondary", size: "sm", title: t("common.edit"), onClick: function () { openBuildingEdit(b); } }),
+        UI.Button({ label: t("loc.enter_building"), variant: "primary", icon: "chevron-right", onClick: function () {
+          locState = { mode: "wizard", bIndex: i, step: "joylashuv" }; navigate(current);
+        } })
+      ])
+    ]);
+  }
+
+  function openBuildingEdit(b) {
+    openEdit(t("loc.main_location"), [
+      { label: t("common.name"), value: b.name },
+      { label: t("lf.viloyat"), value: b.city },
+      { label: t("lf.tuman"), value: b.district }
+    ], function (v) { b.name = v[0]; b.city = v[1]; b.district = v[2]; });
+  }
+
+  /* ---- Wizard ---- */
+  function renderBuildingWizard() {
+    var b = D.location.buildings[locState.bIndex];
+    var page = h("div", { class: "page" });
+    page.appendChild(pageHead("loc.enter_building_title", "loc.page_desc", [
+      UI.Button({ label: t("loc.back"), variant: "secondary", icon: "chevron-left", onClick: function () {
+        locState.mode = "list"; navigate(current);
+      } })
+    ]));
+
+    var layout = h("div", { class: "wizard" });
+    // stepper
+    var stepper = h("div", { class: "wizard__steps" }, WIZ_STEPS.map(function (step) {
+      var st = stepStatus(b, step);
+      var isActive = step === locState.step;
+      var item = h("button", { class: "wstep" + (isActive ? " is-active" : "") + (st.s === "na" ? " is-na" : ""), type: "button",
+        onClick: function () { locState.step = step; navigate(current); } }, [
+        h("span", { class: "wstep__dot wstep__dot--" + st.s }, st.s === "done" ? UI.icon("check") : h("span", { class: "wstep__ring" })),
+        h("div", { class: "wstep__text" }, [
+          h("div", { class: "wstep__title", text: t("step." + step) }),
+          h("div", { class: "wstep__status", text: t("st." + st.s) })
+        ])
+      ]);
+      if (st.n != null) item.appendChild(h("span", { class: "wstep__count", text: String(st.n) }));
+      return item;
+    }));
+
+    var content = h("div", { class: "wizard__content" }, buildStepContent(b, locState.step));
+    layout.appendChild(stepper);
+    layout.appendChild(content);
+    page.appendChild(h("div", { class: "section" }, layout));
+    return page;
+  }
+
+  function stepNav(prevStep, nextStep) {
+    var row = h("div", { class: "form-section__foot", style: "justify-content:space-between" }, [
+      prevStep ? UI.Button({ label: t("loc.prev"), variant: "secondary", icon: "chevron-left", onClick: function () { locState.step = prevStep; navigate(current); } }) : h("span"),
+      nextStep ? UI.Button({ label: t("loc.next"), variant: "primary", icon: "chevron-right", onClick: function () { locState.step = nextStep; navigate(current); } }) : h("span")
+    ]);
+    return row;
+  }
+
+  function buildStepContent(b, step) {
+    var idx = WIZ_STEPS.indexOf(step);
+    var prev = idx > 0 ? WIZ_STEPS[idx - 1] : null;
+    var next = idx < WIZ_STEPS.length - 1 ? WIZ_STEPS[idx + 1] : null;
+
+    if (step === "joylashuv") {
+      var j = b.joylashuv || (b.joylashuv = { address: "", geo: "", lat: 0, lng: 0, fenceType: "", distanceKm: 0, viloyat: b.city, tuman: b.district, fullAddress: "" });
+      var refs = {};
+      function fld(key, label, val, opts) { var f = UI.FormField(Object.assign({ label: label, value: val == null ? "" : val }, opts || {})); refs[key] = f._input; return f; }
+      var grid = h("div", { class: "form-grid" }, [
+        fld("address", "* " + t("lf.address"), j.address),
+        fld("geo", "* " + t("lf.geo"), j.geo),
+        h("div", { class: "field" }, [
+          h("label", { class: "field__label", text: t("lf.coords") }),
+          h("div", { class: "flex gap-md" }, [
+            (function () { var f = UI.FormField({ label: "", value: j.lat, type: "number" }); refs.lat = f._input; f.querySelector(".field__label").remove(); return f; })(),
+            (function () { var f = UI.FormField({ label: "", value: j.lng, type: "number" }); refs.lng = f._input; f.querySelector(".field__label").remove(); return f; })()
+          ])
+        ]),
+        fld("fenceType", "* " + t("lf.fence"), j.fenceType),
+        fld("distanceKm", "* " + t("lf.distance"), j.distanceKm, { type: "number" }),
+        fld("viloyat", "* " + t("lf.viloyat"), j.viloyat),
+        fld("tuman", "* " + t("lf.tuman"), j.tuman)
+      ]);
+      var full = h("div", { class: "wizard__full" }, [
+        h("div", { class: "info-tile__label", text: t("lf.full_address") }),
+        h("div", { class: "info-tile__value", text: j.fullAddress || "—" })
+      ]);
+      var foot = h("div", { class: "form-section__foot" }, UI.Button({ label: t("loc.next"), variant: "primary", icon: "chevron-right", onClick: function () {
+        j.address = refs.address.value; j.geo = refs.geo.value; j.lat = num(refs.lat.value); j.lng = num(refs.lng.value);
+        j.fenceType = refs.fenceType.value; j.distanceKm = num(refs.distanceKm.value); j.viloyat = refs.viloyat.value; j.tuman = refs.tuman.value;
+        locState.step = "bino"; navigate(current);
+      } }));
+      return h("div", { class: "form-section" }, [
+        h("div", { class: "form-section__title", text: t("loc.building_info") }),
+        h("div", { class: "form-section__body" }, [grid, full]),
+        foot
+      ]);
+    }
+
+    if (step === "bino") {
+      var bi = b.bino || (b.bino = { buildYear: null, floors: null, area: null, material: "", condition: "" });
+      var model = bi;
+      var fields = [
+        { key: "buildYear", label: t("bf.build_year"), type: "number" },
+        { key: "floors", label: t("bf.floors"), type: "number" },
+        { key: "area", label: t("bf.area"), type: "number" },
+        { key: "material", label: t("bf.material"), type: "text" },
+        { key: "condition", label: t("bf.condition"), type: "text" }
+      ];
+      return wizardForm(t("step.bino"), fields, model, prev, next);
+    }
+
+    if (step === "kommunal") {
+      var k = b.kommunal || (b.kommunal = {});
+      var kfields = [
+        { key: "electricity", label: t("util.electricity") }, { key: "gas", label: t("util.gas") },
+        { key: "water", label: t("util.water") }, { key: "heating", label: t("util.heating") }, { key: "sewage", label: "Kanalizatsiya" }
+      ];
+      var body = h("div", { class: "info-grid" }, kfields.map(function (f) {
+        return h("div", { class: "info-tile" }, [
+          h("div", { class: "info-tile__label", text: f.label }),
+          UI.StatusBadge(k[f.key] ? "active" : "closed", { label: k[f.key] ? "Mavjud" : "Yo‘q" })
+        ]);
+      }));
+      return h("div", { class: "form-section" }, [
+        h("div", { class: "form-section__title", text: t("step.kommunal") }),
+        h("div", { class: "form-section__body" }, body),
+        stepNav(prev, next)
+      ]);
+    }
+
+    if (step === "infra") {
+      var inf = b.infratuzilma || (b.infratuzilma = { count: 0, items: [] });
+      var chips = h("div", { class: "flex flex-wrap gap-md" }, (inf.items || []).map(function (it) {
+        return UI.StatusBadge("", { variant: "brand", label: it, dotless: true });
+      }));
+      return h("div", { class: "form-section" }, [
+        h("div", { class: "form-section__title", text: t("step.infra") + " (" + (inf.count || 0) + ")" }),
+        h("div", { class: "form-section__body" }, (inf.items && inf.items.length) ? chips : UI.EmptyState({ icon: "grid" })),
+        stepNav(prev, next)
+      ]);
+    }
+
+    // qavatlar / xonalar / ijara / polygon -> empty step
+    return h("div", { class: "form-section" }, [
+      h("div", { class: "form-section__title", text: t("step." + step) }),
+      h("div", { class: "form-section__body" }, UI.EmptyState({ icon: step === "polygon" ? "map" : "grid" })),
+      stepNav(prev, next)
+    ]);
+  }
+
+  function wizardForm(title, fields, model, prev, next) {
+    var refs = {};
+    var grid = h("div", { class: "form-grid" }, fields.map(function (f) {
+      var ff = UI.FormField({ label: f.label, value: model[f.key] == null ? "" : model[f.key], type: f.type || "text" });
+      refs[f.key] = ff._input; return ff;
+    }));
+    var foot = h("div", { class: "form-section__foot", style: "justify-content:space-between" }, [
+      prev ? UI.Button({ label: t("loc.prev"), variant: "secondary", icon: "chevron-left", onClick: function () { locState.step = prev; navigate(current); } }) : h("span"),
+      UI.Button({ label: t("common.save"), variant: "primary", icon: "check", onClick: function () {
+        fields.forEach(function (f) { var raw = refs[f.key].value; model[f.key] = f.type === "number" ? (raw === "" ? null : num(raw)) : raw; });
+        if (next) locState.step = next; navigate(current);
+      } })
+    ]);
+    return h("div", { class: "form-section" }, [
+      h("div", { class: "form-section__title", text: title }),
+      h("div", { class: "form-section__body" }, grid), foot
+    ]);
   }
 
   /* --- Staff --- */
