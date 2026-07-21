@@ -113,11 +113,56 @@
   }
 
   /* --- General --- */
+  /* Numbered section header (passport-style) */
+  function secHead(num, title, sub, onEdit) {
+    var head = h("div", { class: "sec-head" }, [
+      h("span", { class: "sec-head__num", text: num }),
+      h("div", { class: "sec-head__text" }, [
+        h("h2", { class: "sec-head__title", text: title }),
+        sub ? h("p", { class: "sec-head__sub", text: sub }) : null
+      ])
+    ]);
+    if (onEdit) head.appendChild(UI.editButton(onEdit));
+    return head;
+  }
+  function secBlock(num, title, sub, body, onEdit) {
+    return h("div", { class: "section sec" }, [secHead(num, title, sub, onEdit), body]);
+  }
+
   /* --- General --- */
   function renderGeneral() {
     var g = D.general, s = D.staff, dts = g.dts;
     var page = h("div", { class: "page" });
-    page.appendChild(pageHead("page.general.title", "page.general.desc"));
+    function findVal(rows, key) { var r = rows.filter(function (x) { return x.key === key; })[0]; return r ? tv(r) : "—"; }
+
+    // Passport identity header
+    function fact(label, value, mono) {
+      return h("div", { class: "passport-head__fact" }, [
+        h("span", { class: "passport-head__fact-k", text: label }),
+        h("span", { class: "passport-head__fact-v" + (mono ? " mono" : ""), text: value })
+      ]);
+    }
+    var head = h("div", { class: "passport-head" }, [
+      h("div", { class: "passport-head__top" }, [
+        h("div", { class: "passport-head__id" }, [
+          h("div", { class: "passport-head__logo" }, h("img", { src: "assets/img/Symbol.svg", alt: "", width: "34", height: "34" })),
+          h("div", {}, [
+            h("div", { class: "passport-head__eyebrow", text: (t("app.subtitle") + " · " + D.meta.reportYear).toUpperCase() }),
+            h("h1", { class: "passport-head__name", text: t("app.org") })
+          ])
+        ]),
+        UI.StatusBadge("active")
+      ]),
+      h("div", { class: "passport-head__strip" }, [
+        fact(t("g.stir"), findVal(g.basic, "g.stir"), true),
+        fact(t("g.oked"), findVal(g.basic, "g.oked"), true),
+        fact(t("g.direction"), findVal(g.basic, "g.direction")),
+        fact(t("g.founded"), findVal(g.basic, "g.founded")),
+        fact(t("g.district"), findVal(g.funding.rows, "g.district")),
+        fact(t("common.updated"), Fmt.date(D.meta.updatedAt))
+      ])
+    ]);
+    page.appendChild(h("div", { class: "section" }, head));
 
     // KPIs (derived)
     var ins = dts.accounts.filter(function (a) { return a.key === "acc.insurance"; })[0] || {};
@@ -128,62 +173,75 @@
       UI.KpiCard({ label: t("acc.income"), value: Fmt.compact(ins.income || 0), icon: "wallet" })
     ])));
 
-    // 1.1 Asosiy + 1.2 Faoliyati
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
-      kvCard("general.basic", g.basic, function () { editKvRows("general.basic", g.basic); }),
-      kvCard("general.activity", g.activity, function () { editKvRows("general.activity", g.activity); })
-    ])));
+    // 01 Asosiy ma'lumotlar (full width, dense)
+    page.appendChild(secBlock("01", t("general.basic"), null,
+      kvCard(null, g.basic, null, { cols2: true }), function () { editKvRows("general.basic", g.basic); }));
 
-    // 1.3 Mablag' + bank accounts
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
-      kvCard("general.funding", g.funding.rows, function () { editKvRows("general.funding", g.funding.rows); }),
+    // 02 Faoliyati va rejimi
+    page.appendChild(secBlock("02", t("general.activity"), null,
+      kvCard(null, g.activity), function () { editKvRows("general.activity", g.activity); }));
+
+    // 03 Mablag' ajratilishi + hisob raqamlar
+    page.appendChild(secBlock("03", t("general.funding"), null, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
+      kvCard(null, g.funding.rows),
       accountsCard()
-    ])));
+    ]), function () { editKvRows("general.funding", g.funding.rows); }));
 
-    // 1.4 Aloqa + rahbar o'rinbosarlari
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
-      kvCard("general.contact", g.contact, function () { editKvRows("general.contact", g.contact); }),
+    // 04 Aloqa + rahbar o'rinbosarlari
+    page.appendChild(secBlock("04", t("general.contact"), null, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
+      kvCard(null, g.contact),
       deputiesCard()
-    ])));
+    ]), function () { editKvRows("general.contact", g.contact); }));
 
-    // 1.5 Filiallar (empty)
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
-      cardHead("general.branches", {}),
-      h("div", { class: "card__body card__body--flush" },
-        g.branches.length ? branchesTable(g.branches) : UI.EmptyState({ icon: "box" }))
-    ])));
+    // 05 Filiallar (empty)
+    page.appendChild(secBlock("05", t("general.branches"), null, h("div", { class: "card" },
+      h("div", { class: "card__body card__body--flush" }, g.branches.length ? branchesTable(g.branches) : UI.EmptyState({ icon: "box" })))));
 
-    // 1.6 DTS moliyalashtirish
-    page.appendChild(h("div", { class: "section" }, dtsCard()));
+    // 06 DTS moliyalashtirish
+    page.appendChild(secBlock("06", t("general.dts"), null, dtsCard()));
     return page;
   }
 
   function accountsCard() {
     var f = D.general.funding;
-    function list(items) {
-      return h("div", { class: "acc-list" }, items.map(function (a) { return h("code", { class: "acc-num", text: a }); }));
+    function tbl(items) {
+      return UI.DataTable({
+        sticky: true,
+        columns: [
+          { key: "i", label: "#", render: function (r) { return String(r.i); } },
+          { key: "n", label: t("acc.number"), strong: true, render: function (r) { return h("span", { class: "mono", text: r.n }); } }
+        ],
+        rows: items.map(function (n, i) { return { i: i + 1, n: n }; })
+      });
     }
     return h("div", { class: "card" }, [
       cardHead("general.bank_budget", { subtitle: t("general.bank_offbudget") }),
-      h("div", { class: "card__body", style: "display:flex;flex-direction:column;gap:var(--spacing-xl)" }, [
-        h("div", {}, [h("div", { class: "field__label mb-md", text: t("general.bank_budget") + " (" + f.budgetAccounts.length + ")" }), list(f.budgetAccounts)]),
-        h("div", {}, [h("div", { class: "field__label mb-md", text: t("general.bank_offbudget") + " (" + f.offBudgetAccounts.length + ")" }), list(f.offBudgetAccounts)])
+      h("div", { class: "card__body", style: "display:flex;flex-direction:column;gap:var(--spacing-2xl)" }, [
+        h("div", {}, [h("div", { class: "field__label mb-md", text: t("general.bank_budget") + " (" + f.budgetAccounts.length + ")" }), tbl(f.budgetAccounts)]),
+        h("div", {}, [h("div", { class: "field__label mb-md", text: t("general.bank_offbudget") + " (" + f.offBudgetAccounts.length + ")" }), tbl(f.offBudgetAccounts)])
       ])
     ]);
   }
 
+  function initials(name) {
+    var p = String(name).trim().split(/\s+/);
+    return ((p[0] || "")[0] || "").toUpperCase() + ((p[1] || "")[0] || "").toUpperCase();
+  }
   function deputiesCard() {
     var g = D.general;
+    var rows = h("div", { class: "contact-rows" }, g.deputies.map(function (d) {
+      return h("div", { class: "contact-row" }, [
+        h("div", { class: "contact-row__avatar", text: initials(d.name) }),
+        h("div", { class: "contact-row__body" }, [
+          h("div", { class: "contact-row__name", text: d.name, title: d.name }),
+          h("div", { class: "contact-row__role", text: t("general.deputies") })
+        ]),
+        h("a", { class: "contact-row__phone", href: "tel:" + d.phone.replace(/\s/g, ""), text: d.phone })
+      ]);
+    }));
     return h("div", { class: "card" }, [
       cardHead("general.deputies", {}),
-      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
-        sticky: true,
-        columns: [
-          { key: "name", label: t("common.name"), sticky: "left", strong: true },
-          { key: "phone", label: t("general.f.phone"), align: "right" }
-        ],
-        rows: g.deputies
-      }))
+      h("div", { class: "card__body card__body--flush" }, rows)
     ]);
   }
 
@@ -235,17 +293,23 @@
     return h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [chart, contract]);
   }
 
-  function kvCard(titleKey, rows, onEdit) {
-    var kv = h("div", { class: "kv" });
+  function kvCard(titleKey, rows, onEdit, opts) {
+    opts = opts || {};
+    var grid = h("div", { class: "info-grid" + (opts.cols2 ? "" : " info-grid--2") });
     rows.forEach(function (r) {
       var val = tv(r);
-      kv.appendChild(h("div", { class: "kv__key", text: t(r.key) }));
-      kv.appendChild(h("div", { class: "kv__val" + (val ? "" : " kv__val--empty"), text: val || t("common.no_value") }));
+      var isEmpty = !val;
+      var isMono = val && /^[+\d\s.\-/]+$/.test(val);
+      var isWide = val && val.length > 42;
+      grid.appendChild(h("div", { class: "info-tile" + (isWide ? " info-tile--wide" : "") }, [
+        h("div", { class: "info-tile__label", text: t(r.key) }),
+        h("div", { class: "info-tile__value" + (isEmpty ? " info-tile__value--empty" : "") + (isMono ? " info-tile__value--mono" : ""),
+          text: val || t("common.no_value") })
+      ]));
     });
-    return h("div", { class: "card" }, [
-      cardHead(titleKey, { onEdit: onEdit }),
-      h("div", { class: "card__body card__body--flush" }, kv)
-    ]);
+    var body = h("div", { class: "card__body" }, grid);
+    if (!titleKey) return h("div", { class: "card" }, body);
+    return h("div", { class: "card" }, [cardHead(titleKey, { onEdit: onEdit }), body]);
   }
 
   function editKvRows(descKey, rows) {

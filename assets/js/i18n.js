@@ -36,6 +36,7 @@
       "general.dts": "Tibbiy sug‘urta / Mablag‘", "general.dts_accounts": "Hisob raqamlar bo‘yicha ma’lumot", "general.dts_contract": "DTS jamg‘armasi shartnomasi",
       "acc.insurance": "Sug‘urta hisob varag‘i", "acc.personal": "Shaxsiy hisob varag‘i", "acc.food": "Oziq-ovqat hisob varag‘i", "acc.main": "Asosiy hisob varag‘i",
       "acc.start": "Yil boshi qoldiq", "acc.income": "Jami tushum", "acc.expense": "Kassa xarajati", "acc.end": "Hisobot oxiri qoldiq",
+      "acc.number": "Hisob raqami",
       "dts.number": "Shartnoma raqami", "dts.date": "Shartnoma sanasi", "dts.total": "Shartnoma qiymati",
 
       /* Staff columns */

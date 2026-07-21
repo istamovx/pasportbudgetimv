@@ -51,19 +51,23 @@
 .badge--brand   { background: var(--utility-brand-50);    color: var(--utility-brand-700);   border-color: var(--utility-brand-200); }
 .badge--neutral { background: var(--bg-secondary);       color: var(--utility-gray-700);    border-color: var(--border-primary); }
 
-/* ---------- KPI Card ---------- */
+/* ---------- KPI / Stat card (refined, no icon box) ---------- */
 .kpi {
   background: var(--bg-primary); border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-xl); padding: var(--spacing-2xl); box-shadow: var(--shadow-xs);
-  display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0;
+  border-radius: var(--radius-lg); padding: var(--spacing-xl) var(--spacing-2xl);
+  display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; position: relative;
+  transition: border-color var(--transition-fast);
 }
-.kpi__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-md); }
-.kpi__label { color: var(--text-tertiary); font-weight: var(--font-weight-medium); font-size: var(--text-sm); }
-.kpi__icon { width: 40px; height: 40px; flex: none; border-radius: var(--radius-md); display: grid; place-items: center; background: var(--utility-brand-50); color: var(--utility-brand-600); border: 1px solid var(--utility-brand-100); }
-.kpi__icon .icon { width: 20px; height: 20px; }
-.kpi__value { font-size: var(--display-xs); line-height: var(--display-xs-lh); font-weight: var(--font-weight-semibold); color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.kpi__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
-.kpi__trend { display: inline-flex; align-items: center; gap: var(--spacing-xs); font-size: var(--text-xs); font-weight: var(--font-weight-medium); }
+.kpi:hover { border-color: var(--border-primary); }
+.kpi__top { display: flex; align-items: center; gap: var(--spacing-sm); }
+.kpi__label { color: var(--text-tertiary); font-weight: var(--font-weight-semibold); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.055em; }
+.kpi__icon { width: auto; height: auto; background: none; border: none; color: var(--fg-quaternary); display: inline-flex; }
+.kpi__icon .icon { width: 15px; height: 15px; }
+.kpi__value { font-size: var(--display-sm); line-height: 1.05; font-weight: var(--font-weight-semibold);
+  color: var(--text-primary); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.kpi__foot { display: flex; align-items: center; gap: var(--spacing-md); min-height: 18px; }
+.kpi__trend { display: inline-flex; align-items: center; gap: var(--spacing-xs); font-size: var(--text-xs); font-weight: var(--font-weight-semibold); }
 .kpi__trend--up { color: var(--text-success-primary); }
 .kpi__trend--down { color: var(--text-error-primary); }
 .kpi__spark { width: 96px; height: 32px; flex: none; }

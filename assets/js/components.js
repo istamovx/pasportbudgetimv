@@ -121,31 +121,24 @@
   /* ---- KpiCard (with optional sparkline placeholder canvas) ---- */
   function KpiCard(opts) {
     opts = opts || {};
-    var top = h("div", { class: "kpi__top" }, [
-      h("div", { class: "kpi__label", text: opts.label })
-    ]);
-    if (opts.icon) top.appendChild(h("div", { class: "kpi__icon" }, icon(opts.icon)));
+    var top = h("div", { class: "kpi__top" }, []);
+    if (opts.icon) top.appendChild(h("span", { class: "kpi__icon" }, icon(opts.icon)));
+    top.appendChild(h("div", { class: "kpi__label", text: opts.label }));
 
-    var foot = h("div", { class: "kpi__foot" });
-    if (opts.trend) {
-      var dir = opts.trend.dir === "down" ? "down" : "up";
-      // Arrow icons intentionally omitted; direction is conveyed by color.
-      foot.appendChild(h("span", { class: "kpi__trend kpi__trend--" + dir }, [
-        h("span", { text: opts.trend.text })
-      ]));
-    } else { foot.appendChild(h("span")); }
+    var kids = [top, h("div", { class: "kpi__value", text: opts.value })];
 
     var spark = null;
-    if (opts.sparkline) {
-      spark = h("canvas", { class: "kpi__spark", width: "192", height: "64" });
-      foot.appendChild(spark);
+    if (opts.trend || opts.sparkline) {
+      var foot = h("div", { class: "kpi__foot" });
+      if (opts.trend) {
+        var dir = opts.trend.dir === "down" ? "down" : "up";
+        foot.appendChild(h("span", { class: "kpi__trend kpi__trend--" + dir }, [h("span", { text: opts.trend.text })]));
+      }
+      if (opts.sparkline) { spark = h("canvas", { class: "kpi__spark", width: "192", height: "64" }); foot.appendChild(spark); }
+      kids.push(foot);
     }
 
-    var card = h("div", { class: "kpi" }, [
-      top,
-      h("div", { class: "kpi__value", text: opts.value }),
-      foot
-    ]);
+    var card = h("div", { class: "kpi" }, kids);
     // expose sparkline canvas so chart helper can render into it
     card._sparkCanvas = spark;
     card._sparkData = opts.sparkline;
