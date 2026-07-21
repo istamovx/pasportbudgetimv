@@ -111,10 +111,11 @@
   border-bottom: 1px solid var(--border-secondary);
 }
 .header__inner {
-  height: 100%; width: 100%; max-width: var(--container-max); margin: 0 auto;
+  height: 100%; width: 100%;
   display: flex; align-items: center; gap: var(--spacing-xl);
   padding: 0 var(--spacing-3xl);
 }
+.header__actions { margin-left: auto; } /* info pinned right; title stays left */
 .header__title { font-weight: var(--font-weight-semibold); font-size: var(--text-lg); color: var(--text-primary); }
 .header__spacer { flex: 1; }
 .header__actions { display: flex; align-items: center; gap: var(--spacing-md); }
