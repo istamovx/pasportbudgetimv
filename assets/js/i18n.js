@@ -50,6 +50,19 @@
       /* Debts */
       "debts.district": "Tuman",
 
+      /* Location / building wizard */
+      "loc.page_desc": "Tashkilot joylashuvi va ishlab chiqarish ko‘rsatkichlari.",
+      "loc.add_building": "Bino qo‘shish", "loc.main_location": "Asosiy joylashuv", "loc.branches_location": "Filiallar joylashuvi",
+      "loc.enter_building": "Bino ma’lumotlarini kiritish", "loc.enter_building_title": "Bino ma’lumotlarini kiritish",
+      "loc.back": "Ortga qaytish", "loc.next": "Keyingi", "loc.prev": "Orqaga", "loc.building_info": "Joylashuv bo‘yicha ma’lumot",
+      "step.joylashuv": "Joylashuv", "step.bino": "Bino ma’lumotlari", "step.qavatlar": "Qavatlar", "step.xonalar": "Xonalar",
+      "step.kommunal": "Kommunal-texnik", "step.ijara": "Ijara ma’lumotlari", "step.infra": "Infratuzilma", "step.polygon": "Xarita / Polygon",
+      "st.done": "To‘ldirilgan", "st.notstarted": "Boshlanmagan", "st.na": "Mavjud emas",
+      "lf.address": "Tashkilot manzili", "lf.geo": "Tashkilotning geografik joylashuvi", "lf.coords": "Koordinatalar (kenglik / uzunlik)",
+      "lf.fence": "Hudud o‘ralganlik turi", "lf.distance": "Markazdan masofa (km)", "lf.viloyat": "Viloyat", "lf.tuman": "Tuman",
+      "lf.full_address": "To‘liq manzil",
+      "bf.build_year": "Qurilgan yili", "bf.floors": "Qavatlar soni", "bf.area": "Umumiy maydon (m²)", "bf.material": "Qurilish materiali", "bf.condition": "Holati",
+
       /* MIB (enforcement bureau) */
       "mib.region2": "Hudud", "mib.creditor": "Kreditor nomi", "mib.exec_body": "Ijro tarkibi", "mib.balance_acc": "Balans hisob raqami",
 
