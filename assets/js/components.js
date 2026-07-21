@@ -57,6 +57,8 @@
     "chevron-left": '<path d="M15 18l-6-6 6-6"/>',
     "chevron-down": '<path d="M6 9l6 6 6-6"/>',
     "chevron-right": '<path d="M9 18l6-6-6-6"/>',
+    trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14M10 11v6M14 11v6"/>',
+    search: '<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>',
     building: '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/>',
     "switch": '<path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/>'
   };
@@ -156,14 +158,30 @@
     if (opts.computed) labelChildren.push(h("span", { class: "field__badge field__badge--fx", text: "fx" }));
     else if (opts.readonly || opts.disabled) labelChildren.push(h("span", { class: "field__badge field__badge--ro", title: "read-only", text: "🔒" }));
 
-    var input = h("input", {
-      class: "input" + (opts.computed ? " is-fx" : ""),
-      id: id, type: opts.type || "text",
-      value: opts.value != null ? opts.value : "",
-      placeholder: opts.placeholder || "",
-      disabled: opts.disabled || opts.readonly || opts.computed,
-      name: opts.name || ""
-    });
+    var input;
+    if (opts.type === "select") {
+      input = h("select", {
+        class: "select", id: id, disabled: opts.disabled, name: opts.name || "",
+        onChange: opts.onChange ? function (e) { opts.onChange(e.target.value); } : null
+      });
+      if (opts.placeholder) input.appendChild(h("option", { value: "", disabled: "", selected: opts.value ? null : "" }, opts.placeholder));
+      (opts.options || []).forEach(function (o) {
+        var ov = typeof o === "string" ? o : o.value;
+        var ol = typeof o === "string" ? o : o.label;
+        var opt = h("option", { value: ov }, ol);
+        if (String(ov) === String(opts.value)) opt.selected = true;
+        input.appendChild(opt);
+      });
+    } else {
+      input = h("input", {
+        class: "input" + (opts.computed ? " is-fx" : ""),
+        id: id, type: opts.type || "text",
+        value: opts.value != null ? opts.value : "",
+        placeholder: opts.placeholder || "",
+        disabled: opts.disabled || opts.readonly || opts.computed,
+        name: opts.name || ""
+      });
+    }
     var wrap = h("div", { class: "field" + (opts.error ? " has-error" : "") }, [
       h("label", { class: "field__label", for: id }, labelChildren),
       input
@@ -325,6 +343,38 @@
     drawerEl.classList.remove("is-open");
   }
 
+  /* ---- Modal (centered dialog) ---- */
+  var modalEl = null, modalScrim = null;
+  function ensureModal() {
+    if (modalEl) return;
+    modalScrim = h("div", { class: "modal-scrim", onClick: closeModal });
+    modalEl = h("div", { class: "modal", role: "dialog", "aria-modal": "true" });
+    document.body.appendChild(modalScrim);
+    document.body.appendChild(modalEl);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
+  }
+  function openModal(opts) {
+    ensureModal();
+    opts = opts || {};
+    modalEl.className = "modal" + (opts.size ? " modal--" + opts.size : "");
+    modalEl.innerHTML = "";
+    var head = h("div", { class: "modal__head" }, [
+      h("div", {}, [
+        h("div", { class: "modal__title", text: opts.title || "" }),
+        opts.desc ? h("div", { class: "modal__desc", text: opts.desc }) : null
+      ]),
+      h("button", { class: "icon-btn", type: "button", "aria-label": t("common.close"), onClick: closeModal }, icon("close"))
+    ]);
+    var body = h("div", { class: "modal__body" });
+    append(body, opts.body || "");
+    modalEl.appendChild(head);
+    modalEl.appendChild(body);
+    if (opts.foot) { var f = h("div", { class: "modal__foot" }); append(f, opts.foot); modalEl.appendChild(f); }
+    requestAnimationFrame(function () { modalScrim.classList.add("is-open"); modalEl.classList.add("is-open"); });
+    return { body: body, close: closeModal };
+  }
+  function closeModal() { if (!modalEl) return; modalScrim.classList.remove("is-open"); modalEl.classList.remove("is-open"); }
+
   function hash(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) { h = (h << 5) - h + s.charCodeAt(i); h |= 0; } return h; }
 
   global.UI = {
@@ -332,6 +382,6 @@
     EmptyState: EmptyState, Button: Button, StatusBadge: StatusBadge,
     KpiCard: KpiCard, FormField: FormField, Tabs: Tabs, Segmented: Segmented,
     DataTable: DataTable, openDrawer: openDrawer, closeDrawer: closeDrawer,
-    editButton: editButton
+    openModal: openModal, closeModal: closeModal, editButton: editButton
   };
 })(window);
