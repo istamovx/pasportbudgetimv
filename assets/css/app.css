@@ -438,9 +438,8 @@
 /* Tables always scroll inside their own container, never the page */
 .table-wrap { max-width: 100%; }
 
-/* Header must never overflow on small screens */
-.header { overflow: hidden; }
-.header__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Header must never overflow on small screens (but keep the profile dropdown visible) */
+.header__title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) {
   .header { padding: 0 var(--spacing-lg); gap: var(--spacing-md); }
   .header__actions { gap: var(--spacing-xs); }
