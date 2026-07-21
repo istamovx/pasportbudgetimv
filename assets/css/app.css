@@ -176,8 +176,10 @@
   display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg);
   padding: var(--spacing-xl) var(--spacing-2xl);
   border-bottom: 1px solid var(--border-secondary);
+  flex-wrap: wrap;
 }
-.card__head-actions { display: flex; align-items: center; gap: var(--spacing-md); flex: none; }
+.card__head > div:first-child { min-width: 0; }
+.card__head-actions { display: flex; align-items: center; gap: var(--spacing-md); flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
 .card__title { font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--text-md); }
 .card__subtitle { color: var(--text-tertiary); font-size: var(--text-xs); margin-top: 2px; }
 .card__body { padding: var(--spacing-2xl); }
@@ -402,4 +404,39 @@
 @media (max-width: 640px) {
   .page { padding: var(--spacing-xl); }
   .header { padding: 0 var(--spacing-xl); }
+}
+
+/* ==========================================================================
+   Global responsive hardening — everything fluid, nothing overflows
+   ========================================================================== */
+*, *::before, *::after { min-width: 0; }
+.main { overflow-x: clip; }               /* safety net against horizontal page scroll */
+.page { width: 100%; max-width: var(--container-max); }
+.card, .card__body, .kpi, .info-tile, .form-section, .bld-card { max-width: 100%; }
+.info-tile { min-width: 0; }
+.info-tile__value, .info-tile__label { overflow-wrap: anywhere; word-break: break-word; }
+.kpi__value, .sec-head__title, .card__title, .passport-head__name { overflow-wrap: anywhere; }
+.page__title, .page__desc { overflow-wrap: anywhere; }
+.page__head { flex-wrap: wrap; }
+
+/* Compact the chart/table toggle on small screens: icon-only */
+@media (max-width: 640px) {
+  .segmented__btn > span:not(.icon) { display: none; }
+  .segmented__btn { padding: var(--spacing-xs) var(--spacing-sm); }
+  .card__head { padding: var(--spacing-lg) var(--spacing-xl); }
+  .card__body { padding: var(--spacing-xl); }
+  .btn__label-md { display: none; }
+}
+
+/* Tables always scroll inside their own container, never the page */
+.table-wrap { max-width: 100%; }
+
+/* Header must never overflow on small screens */
+.header { overflow: hidden; }
+.header__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) {
+  .header { padding: 0 var(--spacing-lg); gap: var(--spacing-md); }
+  .header__actions { gap: var(--spacing-xs); }
+  .profile__chev { display: none; }
+  .profile { padding: var(--spacing-xs); }
 }

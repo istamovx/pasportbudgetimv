@@ -93,5 +93,10 @@
   .login__main { min-height: 100dvh; }
 }
 @media (max-width: 480px) {
+  .login__main { padding: var(--spacing-xl); gap: var(--spacing-xl); }
   .login__card { padding: var(--spacing-2xl); }
+  .login__card, .login__support { max-width: 100%; }
 }
+.login, .login__main { overflow-x: clip; }
+.login__card, .login__support, .login__info { min-width: 0; }
+.login__info, .login__support { flex-wrap: wrap; }
