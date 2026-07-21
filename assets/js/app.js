@@ -502,8 +502,11 @@
 
     var sidebar = h("aside", { class: "sidebar", id: "sidebar" }, [
       h("div", { class: "sidebar__brand" }, [
-        h("img", { class: "sidebar__logo sidebar__logo--full", src: "assets/img/logo.svg", alt: t("app.name"), width: "160", height: "40" }),
-        h("img", { class: "sidebar__logo sidebar__logo--symbol", src: "assets/img/symbol.svg", alt: t("app.name"), width: "40", height: "40" }),
+        h("img", { class: "sidebar__logo sidebar__logo--symbol", src: "assets/img/Symbol.svg", alt: t("app.name"), width: "34", height: "34" }),
+        h("div", { class: "sidebar__brand-text" }, [
+          h("div", { class: "sidebar__brand-name", "data-i18n": "app.name", text: t("app.name") }),
+          h("div", { class: "sidebar__brand-sub", "data-i18n": "app.subtitle", text: t("app.subtitle") })
+        ]),
         collapseBtn
       ]),
       nav,

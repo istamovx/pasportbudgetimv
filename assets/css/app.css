@@ -28,8 +28,10 @@
   border-bottom: 1px solid var(--border-secondary);
 }
 .sidebar__logo { flex: none; display: block; }
-.sidebar__logo--full { height: 32px; }
-.sidebar__logo--symbol { width: 36px; height: 36px; display: none; }
+.sidebar__logo--symbol { width: 34px; height: 34px; display: block; }
+.sidebar__brand-text { display: flex; flex-direction: column; min-width: 0; }
+.sidebar__brand-name { font-weight: var(--font-weight-bold); color: var(--text-primary); font-size: var(--text-md); line-height: 1.2; letter-spacing: -0.01em; }
+.sidebar__brand-sub { color: var(--text-tertiary); font-size: var(--text-xs); line-height: var(--text-xs-lh); }
 .sidebar__collapse-btn {
   margin-left: auto; width: 32px; height: 32px; flex: none;
   border-radius: var(--radius-sm); color: var(--fg-quaternary);
