@@ -113,45 +113,134 @@
   }
 
   /* --- General --- */
+  /* --- General --- */
   function renderGeneral() {
-    var g = D.general;
+    var g = D.general, s = D.staff, dts = g.dts;
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.general.title", "page.general.desc"));
 
-    // KPIs
-    var kpis = h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
-      UI.KpiCard({ label: t("general.kpi.staff_total"), value: Fmt.num(g.kpi.staffTotal) + " " + t("common.people"), icon: "users",
-        trend: { dir: "up", text: "+3.2%" } }),
-      UI.KpiCard({ label: t("general.kpi.occupied"), value: Fmt.num(g.kpi.occupied), icon: "check",
-        trend: { dir: "up", text: "88.6%" } }),
-      UI.KpiCard({ label: t("general.kpi.vacant"), value: Fmt.num(g.kpi.vacant), icon: "inbox",
-        trend: { dir: "down", text: "−4" } }),
-      UI.KpiCard({ label: t("general.kpi.debt"), value: Fmt.compact(g.kpi.debt), icon: "wallet",
-        trend: { dir: "down", text: "−2.1%" } })
-    ]);
-    page.appendChild(h("div", { class: "section" }, kpis));
+    // KPIs (derived)
+    var ins = dts.accounts.filter(function (a) { return a.key === "acc.insurance"; })[0] || {};
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      UI.KpiCard({ label: t("general.kpi.staff_total"), value: Fmt.num(s.totals.plan), icon: "users" }),
+      UI.KpiCard({ label: t("general.kpi.occupied"), value: Fmt.num(s.totals.occupied), icon: "check" }),
+      UI.KpiCard({ label: t("general.kpi.vacant"), value: Fmt.num(s.totals.vacant), icon: "inbox" }),
+      UI.KpiCard({ label: t("acc.income"), value: Fmt.compact(ins.income || 0), icon: "wallet" })
+    ])));
 
-    // Key-value cards (equal columns) — each block editable
-    var kvCols = h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
+    // 1.1 Asosiy + 1.2 Faoliyati
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
       kvCard("general.basic", g.basic, function () { editKvRows("general.basic", g.basic); }),
-      kvCard("general.contact", g.contact, function () { editKvRows("general.contact", g.contact); })
-    ]);
-    page.appendChild(h("div", { class: "section" }, kvCols));
+      kvCard("general.activity", g.activity, function () { editKvRows("general.activity", g.activity); })
+    ])));
 
-    // Money movement bar + stacked source
-    page.appendChild(h("div", { class: "section" },
-      h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
-        mibMovementCard(), mibSourceCard()
-      ])
-    ));
+    // 1.3 Mablag' + bank accounts
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
+      kvCard("general.funding", g.funding.rows, function () { editKvRows("general.funding", g.funding.rows); }),
+      accountsCard()
+    ])));
+
+    // 1.4 Aloqa + rahbar o'rinbosarlari
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
+      kvCard("general.contact", g.contact, function () { editKvRows("general.contact", g.contact); }),
+      deputiesCard()
+    ])));
+
+    // 1.5 Filiallar (empty)
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      cardHead("general.branches", {}),
+      h("div", { class: "card__body card__body--flush" },
+        g.branches.length ? branchesTable(g.branches) : UI.EmptyState({ icon: "box" }))
+    ])));
+
+    // 1.6 DTS moliyalashtirish
+    page.appendChild(h("div", { class: "section" }, dtsCard()));
     return page;
+  }
+
+  function accountsCard() {
+    var f = D.general.funding;
+    function list(items) {
+      return h("div", { class: "acc-list" }, items.map(function (a) { return h("code", { class: "acc-num", text: a }); }));
+    }
+    return h("div", { class: "card" }, [
+      cardHead("general.bank_budget", { subtitle: t("general.bank_offbudget") }),
+      h("div", { class: "card__body", style: "display:flex;flex-direction:column;gap:var(--spacing-xl)" }, [
+        h("div", {}, [h("div", { class: "field__label mb-md", text: t("general.bank_budget") + " (" + f.budgetAccounts.length + ")" }), list(f.budgetAccounts)]),
+        h("div", {}, [h("div", { class: "field__label mb-md", text: t("general.bank_offbudget") + " (" + f.offBudgetAccounts.length + ")" }), list(f.offBudgetAccounts)])
+      ])
+    ]);
+  }
+
+  function deputiesCard() {
+    var g = D.general;
+    return h("div", { class: "card" }, [
+      cardHead("general.deputies", {}),
+      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        sticky: true,
+        columns: [
+          { key: "name", label: t("common.name"), sticky: "left", strong: true },
+          { key: "phone", label: t("general.f.phone"), align: "right" }
+        ],
+        rows: g.deputies
+      }))
+    ]);
+  }
+
+  function dtsCard() {
+    var dts = D.general.dts;
+    var accCols = [
+      { key: "key", label: t("common.name"), sticky: "left", strong: true, render: function (r) { return t(r.key); } },
+      { key: "start", label: t("acc.start"), align: "right", render: function (r) { return r.start == null ? "—" : money(r.start); } },
+      { key: "income", label: t("acc.income"), align: "right", render: function (r) { return r.income == null ? "—" : money(r.income); } },
+      { key: "expense", label: t("acc.expense"), align: "right", render: function (r) { return r.expense == null ? "—" : money(r.expense); } },
+      { key: "end", label: t("acc.end"), align: "right", render: function (r) { return r.end == null ? "—" : money(r.end); } }
+    ];
+    var chart = Charts.ChartCard({
+      title: t("general.dts"), subtitle: t("general.dts_accounts"), type: "bar", barOpts: { money: true },
+      onEdit: function () {
+        var specs = [];
+        dts.accounts.forEach(function (a) {
+          specs.push({ label: t(a.key) + " — " + t("acc.income"), value: a.income, type: "number" });
+          specs.push({ label: t(a.key) + " — " + t("acc.expense"), value: a.expense, type: "number" });
+        });
+        openEdit(t("general.dts"), specs, function (v) {
+          var i = 0; dts.accounts.forEach(function (a) { a.income = num(v[i++]); a.expense = num(v[i++]); });
+        });
+      },
+      data: {
+        labels: dts.accounts.map(function (a) { return t(a.key); }),
+        datasets: [
+          { label: t("acc.income"), values: dts.accounts.map(function (a) { return a.income || 0; }), color: "plan" },
+          { label: t("acc.expense"), values: dts.accounts.map(function (a) { return a.expense || 0; }), color: "actual" }
+        ]
+      },
+      table: { sticky: true, columns: accCols, rows: dts.accounts },
+      height: 300
+    });
+    var contract = h("div", { class: "card" }, [
+      cardHead("general.dts_contract", { onEdit: function () {
+        openEdit(t("general.dts_contract"), [
+          { label: t("dts.number"), value: dts.contract.number },
+          { label: t("dts.date"), value: dts.contract.date },
+          { label: t("dts.total"), value: dts.contract.total, type: "number" }
+        ], function (v) { dts.contract.number = v[0]; dts.contract.date = v[1]; dts.contract.total = num(v[2]); });
+      } }),
+      h("div", { class: "card__body card__body--flush" }, h("div", { class: "kv" }, [
+        h("div", { class: "kv__key", text: t("dts.number") }), h("div", { class: "kv__val", text: dts.contract.number }),
+        h("div", { class: "kv__key", text: t("dts.date") }), h("div", { class: "kv__val", text: dts.contract.date }),
+        h("div", { class: "kv__key", text: t("dts.total") }), h("div", { class: "kv__val strong", text: money(dts.contract.total) })
+      ]))
+    ]);
+    return h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [chart, contract]);
   }
 
   function kvCard(titleKey, rows, onEdit) {
     var kv = h("div", { class: "kv" });
     rows.forEach(function (r) {
+      var val = tv(r);
       kv.appendChild(h("div", { class: "kv__key", text: t(r.key) }));
-      kv.appendChild(h("div", { class: "kv__val", text: tv(r) }));
+      kv.appendChild(h("div", { class: "kv__val" + (val ? "" : " kv__val--empty"), text: val || t("common.no_value") }));
     });
     return h("div", { class: "card" }, [
       cardHead(titleKey, { onEdit: onEdit }),
@@ -159,47 +248,22 @@
     ]);
   }
 
-  /* Edit key/value rows (text; INN stays read-only) */
   function editKvRows(descKey, rows) {
     var specs = rows.map(function (r) {
-      return { label: t(r.key), value: tv(r), disabled: r.key === "general.f.inn" };
+      return { label: t(r.key), value: tv(r), disabled: r.i18nValue && r.key === "g.name" ? false : false };
     });
-    openEdit(t(descKey), specs, function (vals) {
-      rows.forEach(function (r, i) { if (r.key !== "general.f.inn") setLoc(r, vals[i]); });
-    });
+    openEdit(t(descKey), specs, function (vals) { rows.forEach(function (r, i) { setLoc(r, vals[i]); }); });
   }
 
-  /* --- MIB / money movement cards (shared by General + MIB page) --- */
-  function mibMovementCard() {
-    var m = D.mib.movement;
-    return Charts.ChartCard({
-      title: t("mib.movement"), subtitle: t("mib.budget") + " · " + t("mib.paid"),
-      type: "bar", barOpts: { money: true },
-      onEdit: function () { editBudgetPaid("mib.movement", m); },
-      data: {
-        labels: m.map(function (r) { return t(r.key); }),
-        datasets: [
-          { label: t("mib.budget"), values: m.map(function (r) { return r.budget; }), color: "plan" },
-          { label: t("mib.paid"), values: m.map(function (r) { return r.paid; }), color: "actual" }
-        ]
-      },
-      height: 300
-    });
-  }
-  function mibSourceCard() {
-    var s = D.mib.sources;
-    return Charts.ChartCard({
-      title: t("mib.by_source"), subtitle: t("mib.income"),
-      type: "bar", barOpts: { stacked: true, money: true },
-      onEdit: function () { editBudgetPaid("mib.by_source", s); },
-      data: {
-        labels: s.map(function (r) { return t(r.key); }),
-        datasets: [
-          { label: t("mib.budget"), values: s.map(function (r) { return r.budget; }), color: "plan" },
-          { label: t("mib.paid"), values: s.map(function (r) { return r.paid; }), color: "actual" }
-        ]
-      },
-      height: 300
+  function branchesTable(rows) {
+    return UI.DataTable({
+      sticky: true,
+      columns: [
+        { key: "name", label: t("common.name"), sticky: "left", strong: true, render: function (r) { return loc(r); } },
+        { key: "area", label: "m²", align: "right" },
+        { key: "staff", label: t("general.kpi.staff_total"), align: "right", render: function (r) { return Fmt.num(r.staff); } }
+      ],
+      rows: rows
     });
   }
 
@@ -210,12 +274,14 @@
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.location.title", "page.location.desc"));
 
-    // Real interactive map (Leaflet + OpenStreetMap)
     var mapEl = h("div", { class: "map", id: "org-map" });
     var mapCard = h("div", { class: "card" }, [
       cardHead(t("general.f.address"), {
         subtitle: loc(l.address),
-        extra: UI.StatusBadge("", { variant: "brand", label: l.lat.toFixed(4) + ", " + l.lng.toFixed(4), dotless: true }),
+        extra: h("div", { class: "flex items-center gap-md" }, [
+          UI.StatusBadge(l.status || "new"),
+          UI.StatusBadge("", { variant: "brand", label: l.lat.toFixed(4) + ", " + l.lng.toFixed(4), dotless: true })
+        ]),
         onEdit: function () {
           openEdit(t("nav.location"), [
             { label: t("general.f.address"), value: loc(l.address) },
@@ -224,34 +290,23 @@
           ], function (v) { setLoc(l.address, v[0]); l.lat = num(v[1]); l.lng = num(v[2]); });
         }
       }),
-      h("div", { class: "card__body card__body--flush" }, mapEl)
+      h("div", { class: "card__body card__body--flush" }, [
+        h("div", { class: "kv" }, [
+          h("div", { class: "kv__key", text: t("general.f.region") }),
+          h("div", { class: "kv__val", text: l.city + " • " + l.district })
+        ]),
+        mapEl
+      ])
     ]);
     page.appendChild(h("div", { class: "section" }, mapCard));
 
-    var branchTable = h("div", { class: "card" }, [
-      cardHead("nav.location", { onEdit: function () { addBranch(l); } }),
-      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
-        sticky: true,
-        columns: [
-          { key: "name", label: t("common.name"), sticky: "left", strong: true, render: function (r) { return loc(r); } },
-          { key: "area", label: "m²", align: "right" },
-          { key: "staff", label: t("general.kpi.staff_total"), align: "right", render: function (r) { return Fmt.num(r.staff); } },
-          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
-            return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
-              openEdit(loc(r), [
-                { label: t("common.name"), value: loc(r) },
-                { label: "m²", value: r.area },
-                { label: t("general.kpi.staff_total"), value: r.staff, type: "number" }
-              ], function (v) { setLoc(r, v[0]); r.area = v[1]; r.staff = num(v[2]); });
-            } });
-          } }
-        ],
-        rows: l.branches
-      }))
-    ]);
-    page.appendChild(h("div", { class: "section" }, branchTable));
+    // 1.5 Filiallar joylashuvi (empty)
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      cardHead("general.branches", {}),
+      h("div", { class: "card__body card__body--flush" },
+        l.branches.length ? branchesTable(l.branches) : UI.EmptyState({ icon: "map" }))
+    ])));
 
-    // Init map after the container is mounted and has dimensions
     requestAnimationFrame(function () { initLocationMap(mapEl, l); });
     return page;
   }
@@ -260,32 +315,18 @@
     if (!global.L || !document.body.contains(el)) return;
     if (locationMap) { try { locationMap.remove(); } catch (e) {} locationMap = null; }
     el.classList.toggle("map--dark", (document.documentElement.getAttribute("data-theme") === "dark"));
-
-    var map = global.L.map(el, { scrollWheelZoom: false, attributionControl: true }).setView([l.lat, l.lng], 15);
-    global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19, attribution: "© OpenStreetMap"
-    }).addTo(map);
-
+    var map = global.L.map(el, { scrollWheelZoom: false }).setView([l.lat, l.lng], 15);
+    global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
     var markerIcon = global.L.icon({
       iconUrl: "assets/vendor/leaflet/images/marker-icon.png",
       iconRetinaUrl: "assets/vendor/leaflet/images/marker-icon-2x.png",
       shadowUrl: "assets/vendor/leaflet/images/marker-shadow.png",
       iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
     });
-    global.L.marker([l.lat, l.lng], { icon: markerIcon }).addTo(map)
-      .bindPopup("<b>" + t("app.org") + "</b><br>" + loc(l.address));
+    global.L.marker([l.lat, l.lng], { icon: markerIcon }).addTo(map).bindPopup("<b>" + t("app.org") + "</b><br>" + loc(l.address));
     locationMap = map;
-    // enable wheel-zoom only after click (avoids hijacking page scroll)
     map.on("click", function () { map.scrollWheelZoom.enable(); });
     setTimeout(function () { try { map.invalidateSize(); } catch (e) {} }, 200);
-  }
-
-  function addBranch(l) {
-    openEdit(t("common.add"), [
-      { label: t("common.name"), value: "" },
-      { label: "m²", value: "" },
-      { label: t("general.kpi.staff_total"), value: 0, type: "number" }
-    ], function (v) { l.branches.push({ name: v[0], area: v[1], staff: num(v[2]) }); });
   }
 
   /* --- Staff --- */
@@ -294,40 +335,61 @@
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.staff.title", "page.staff.desc"));
 
+    // KPIs
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      UI.KpiCard({ label: t("staff.col.plan"), value: Fmt.num(s.totals.plan), icon: "users" }),
+      UI.KpiCard({ label: t("staff.col.occupied"), value: Fmt.num(s.totals.occupied), icon: "check" }),
+      UI.KpiCard({ label: t("staff.col.physical"), value: Fmt.num(s.totals.physical), icon: "users" }),
+      UI.KpiCard({ label: t("staff.col.vacant"), value: Fmt.num(s.totals.vacant), icon: "inbox" })
+    ])));
+
     page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
       Charts.ChartCard({
         title: t("staff.by_position"), type: "doughnut",
-        onEdit: function () { editKeyValues("staff.by_position", s.byPosition); },
-        data: { labels: s.byPosition.map(function (r) { return t(r.key); }), values: s.byPosition.map(function (r) { return r.value; }) },
+        onEdit: function () {
+          openEdit(t("staff.by_position"), s.categories.map(function (r) { return { label: t(r.key), value: r.occupied, type: "number" }; }),
+            function (v) { s.categories.forEach(function (r, i) { r.occupied = num(v[i]); }); });
+        },
+        data: { labels: s.categories.map(function (r) { return t(r.key); }), values: s.categories.map(function (r) { return r.occupied; }) },
         height: 320
       }),
       Charts.ChartCard({
         title: t("staff.by_tarif"), type: "bar", barOpts: { horizontal: true },
-        onEdit: function () { editKeyValues("staff.by_tarif", s.byTarif); },
-        data: { labels: s.byTarif.map(function (r) { return t(r.key); }), datasets: [{ label: t("common.count"), values: s.byTarif.map(function (r) { return r.value; }), color: "1" }] },
+        onEdit: function () {
+          openEdit(t("staff.by_tarif"), s.byTarif.map(function (r) { return { label: t(r.key), value: r.plan, type: "number" }; }),
+            function (v) { s.byTarif.forEach(function (r, i) { r.plan = num(v[i]); }); });
+        },
+        data: { labels: s.byTarif.map(function (r) { return t(r.key); }), datasets: [{ label: t("staff.col.plan"), values: s.byTarif.map(function (r) { return r.plan; }), color: "1" }] },
         height: 320
       })
     ])));
 
+    // Compare chart + full table (with summary rows)
+    var tableRows = s.categories.concat(s.byTarif);
+    var summary = [
+      { key: "staff.total_row", plan: s.totals.plan, occupied: s.totals.occupied, physical: s.totals.physical, vacant: s.totals.vacant },
+      { key: "staff.medstaff", plan: s.medStaff.plan, occupied: s.medStaff.occupied, physical: s.medStaff.physical, vacant: s.medStaff.vacant },
+      { key: "staff.doctors_row", plan: s.doctors.plan, occupied: s.doctors.occupied, physical: s.doctors.physical, vacant: s.doctors.vacant }
+    ];
     page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
       title: t("staff.compare"), type: "bar",
       onEdit: function () {
         var specs = [];
-        s.compare.forEach(function (r) {
-          specs.push({ label: t(r.key) + " — " + t("staff.col.staff"), value: r.staff, type: "number" });
+        s.categories.forEach(function (r) {
+          specs.push({ label: t(r.key) + " — " + t("staff.col.plan"), value: r.plan, type: "number" });
           specs.push({ label: t(r.key) + " — " + t("staff.col.occupied"), value: r.occupied, type: "number" });
           specs.push({ label: t(r.key) + " — " + t("staff.col.vacant"), value: r.vacant, type: "number" });
         });
         openEdit(t("staff.compare"), specs, function (v) {
-          var i = 0; s.compare.forEach(function (r) { r.staff = num(v[i++]); r.occupied = num(v[i++]); r.vacant = num(v[i++]); });
+          var i = 0; s.categories.forEach(function (r) { r.plan = num(v[i++]); r.occupied = num(v[i++]); r.vacant = num(v[i++]); });
         });
       },
       data: {
-        labels: s.compare.map(function (r) { return t(r.key); }),
+        labels: s.categories.map(function (r) { return t(r.key); }),
         datasets: [
-          { label: t("staff.col.staff"), values: s.compare.map(function (r) { return r.staff; }), color: "plan" },
-          { label: t("staff.col.occupied"), values: s.compare.map(function (r) { return r.occupied; }), color: "positive" },
-          { label: t("staff.col.vacant"), values: s.compare.map(function (r) { return r.vacant; }), color: "negative" }
+          { label: t("staff.col.plan"), values: s.categories.map(function (r) { return r.plan; }), color: "plan" },
+          { label: t("staff.col.occupied"), values: s.categories.map(function (r) { return r.occupied; }), color: "positive" },
+          { label: t("staff.col.vacant"), values: s.categories.map(function (r) { return r.vacant; }), color: "negative" }
         ]
       },
       height: 340,
@@ -335,11 +397,12 @@
         sticky: true,
         columns: [
           { key: "key", label: t("common.category"), sticky: "left", strong: true, render: function (r) { return t(r.key); } },
-          { key: "staff", label: t("staff.col.staff"), align: "right", render: function (r) { return Fmt.num(r.staff); } },
+          { key: "plan", label: t("staff.col.plan"), align: "right", render: function (r) { return Fmt.num(r.plan); } },
           { key: "occupied", label: t("staff.col.occupied"), align: "right", render: function (r) { return Fmt.num(r.occupied); } },
+          { key: "physical", label: t("staff.col.physical"), align: "right", render: function (r) { return Fmt.num(r.physical); } },
           { key: "vacant", label: t("staff.col.vacant"), align: "right", render: function (r) { return Fmt.num(r.vacant); } }
         ],
-        rows: s.compare
+        rows: tableRows.concat(summary)
       }
     })));
     return page;
@@ -351,83 +414,68 @@
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.material.title", "page.material.desc"));
 
+    // model distribution
+    var byModel = {};
+    m.vehicles.forEach(function (v) { byModel[v.model] = (byModel[v.model] || 0) + 1; });
+    var modelLabels = Object.keys(byModel), modelValues = modelLabels.map(function (k) { return byModel[k]; });
+
     page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
       Charts.ChartCard({
         title: t("material.by_model"), subtitle: t("material.transport"), type: "pie",
-        onEdit: function () { editKeyValues("material.by_model", m.transport); },
-        data: { labels: m.transport.map(function (r) { return t(r.key); }), values: m.transport.map(function (r) { return r.value; }) },
+        data: { labels: modelLabels, values: modelValues },
         height: 320
       }),
-      h("div", { class: "card" }, [
-        cardHead("material.transport", { onEdit: function () {
-          openEdit(t("common.add"), [
-            { label: t("material.model"), value: "" },
-            { label: t("material.year"), value: "", type: "number" },
-            { label: t("material.plate"), value: "" }
-          ], function (v) { m.vehicles.push({ model: v[0], type: "veh.car", year: num(v[1]), plate: v[2] }); });
-        } }),
-        h("div", { class: "card__body card__body--flush" }, UI.DataTable({
-          sticky: true,
-          columns: [
-            { key: "model", label: t("material.model"), sticky: "left", strong: true },
-            { key: "type", label: t("material.type"), render: function (r) { return UI.StatusBadge("", { variant: "brand", label: t(r.type), dotless: true }); } },
-            { key: "year", label: t("material.year"), align: "right" },
-            { key: "plate", label: t("material.plate") },
-            { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
-              return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
-                openEdit(r.model, [
-                  { label: t("material.model"), value: r.model },
-                  { label: t("material.year"), value: r.year, type: "number" },
-                  { label: t("material.plate"), value: r.plate }
-                ], function (v) { r.model = v[0]; r.year = num(v[1]); r.plate = v[2]; });
-              } });
-            } }
-          ],
-          rows: m.vehicles
-        }))
-      ])
+      UI.KpiCard({ label: t("material.transport"), value: Fmt.num(m.vehicles.length) + " " + t("common.units"), icon: "box" })
+    ])));
+
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      cardHead("material.transport", { onEdit: function () {
+        openEdit(t("common.add"), [
+          { label: t("material.model"), value: "" },
+          { label: t("material.plate"), value: "" },
+          { label: t("material.color"), value: "" }
+        ], function (v) { m.vehicles.push({ pass: "—", plate: v[1], model: v[0], color: v[2], reg: D.meta.updatedAt, dept: "—", inspection: "—" }); });
+      } }),
+      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        sticky: true,
+        columns: [
+          { key: "plate", label: t("material.plate"), sticky: "left", strong: true },
+          { key: "model", label: t("material.model") },
+          { key: "color", label: t("material.color") },
+          { key: "pass", label: t("material.pass") },
+          { key: "reg", label: t("material.reg"), render: function (r) { return Fmt.date(r.reg); } },
+          { key: "dept", label: t("material.dept") },
+          { key: "inspection", label: t("material.inspection"), render: function (r) { return r.inspection === "—" ? "—" : Fmt.date(r.inspection); } },
+          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+            return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
+              openEdit(r.model, [
+                { label: t("material.model"), value: r.model },
+                { label: t("material.plate"), value: r.plate },
+                { label: t("material.color"), value: r.color },
+                { label: t("material.dept"), value: r.dept }
+              ], function (v) { r.model = v[0]; r.plate = v[1]; r.color = v[2]; r.dept = v[3]; });
+            } });
+          } }
+        ],
+        rows: m.vehicles
+      }))
+    ])));
+
+    // Auto limits (empty)
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      cardHead("material.auto_limits", {}),
+      h("div", { class: "card__body card__body--flush" }, UI.EmptyState({ icon: "zap" }))
     ])));
     return page;
   }
 
-  /* --- Utilities --- */
+  /* --- Utilities (empty) --- */
   function renderUtilities() {
-    var u = D.utilities;
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.utilities.title", "page.utilities.desc"));
-
-    var total = u.rows.reduce(function (a, r) { return a + r.cost; }, 0);
-    page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
-      title: t("util.by_service"), type: "bar", barOpts: { horizontal: true, money: true },
-      onEdit: function () {
-        var specs = [];
-        u.rows.forEach(function (r) {
-          specs.push({ label: t(r.key) + " — " + t("util.consumption"), value: r.consumption });
-          specs.push({ label: t(r.key) + " — " + t("util.cost"), value: r.cost, type: "number" });
-        });
-        openEdit(t("util.by_service"), specs, function (v) {
-          var i = 0; u.rows.forEach(function (r) { r.consumption = v[i++]; r.cost = num(v[i++]); });
-        });
-      },
-      data: { labels: u.rows.map(function (r) { return t(r.key); }), datasets: [{ label: t("util.cost"), values: u.rows.map(function (r) { return r.cost; }), color: "1" }] },
-      height: 320,
-      table: {
-        sticky: true,
-        columns: [
-          { key: "key", label: t("util.service"), sticky: "left", strong: true, render: function (r) { return t(r.key); } },
-          { key: "consumption", label: t("util.consumption"), align: "right" },
-          { key: "cost", label: t("util.cost"), align: "right", render: function (r) { return money(r.cost); } },
-          { key: "status", label: t("common.status"), render: function (r) { return UI.StatusBadge(r.status); } }
-        ],
-        rows: u.rows,
-        foot: [
-          { content: t("common.total") },
-          { content: "" },
-          { content: money(total), align: "right" },
-          { content: "" }
-        ]
-      }
-    })));
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      h("div", { class: "card__body card__body--flush" }, UI.EmptyState({ icon: "zap" }))
+    ])));
     return page;
   }
 
@@ -438,68 +486,48 @@
     page.appendChild(pageHead("page.debts.title", "page.debts.desc", [
       UI.Button({ label: t("common.add"), variant: "primary", icon: "plus", onClick: function () {
         openEdit(t("debts.table.title"), [
-          { label: t("debts.counterparty"), value: "" },
-          { label: t("common.amount"), value: 0, type: "number" },
+          { label: t("debts.district"), value: "" },
+          { label: t("debts.kpi.overpay"), value: 0, type: "number" },
           { label: t("common.date"), value: D.meta.updatedAt, type: "date" }
-        ], function (v) { db.rows.push({ cp: v[0], amount: num(v[1]), date: v[2], status: "new" }); });
+        ], function (v) { db.rows.unshift({ date: v[2], district: v[0], debt: 0, surcharge: 0, overpay: num(v[1]), status: "new" }); });
       } })
     ]));
 
-    var months = D.monthKeys.map(function (k) { return t(k); });
     page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:3;--cols-md:1" }, [
-      UI.KpiCard({ label: t("debts.kpi.debt"), value: Fmt.compact(db.kpi.debt), icon: "wallet", trend: { dir: "down", text: "−2.1%" } }),
-      UI.KpiCard({ label: t("debts.kpi.surcharge"), value: Fmt.compact(db.kpi.surcharge), icon: "up", trend: { dir: "up", text: "+3.6%" } }),
-      UI.KpiCard({ label: t("debts.kpi.overpay"), value: Fmt.compact(db.kpi.overpay), icon: "down", trend: { dir: "up", text: "+0.8%" } })
+      UI.KpiCard({ label: t("debts.kpi.debt"), value: Fmt.compact(db.kpi.debt), icon: "wallet" }),
+      UI.KpiCard({ label: t("debts.kpi.surcharge"), value: Fmt.compact(db.kpi.surcharge), icon: "up" }),
+      UI.KpiCard({ label: t("debts.kpi.overpay"), value: Fmt.compact(db.kpi.overpay), icon: "down" })
     ])));
 
+    // Overpay by record (bar)
     page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
-      title: t("debts.dynamics"), subtitle: D.meta.reportYear + "", type: "line", barOpts: { money: true },
-      onEdit: function () {
-        openEdit(t("debts.dynamics"), [
-          { label: t("debts.series.debt"), value: db.kpi.debt, type: "number" },
-          { label: t("debts.series.surcharge"), value: db.kpi.surcharge, type: "number" },
-          { label: t("debts.series.overpay"), value: db.kpi.overpay, type: "number" }
-        ], function (v) {
-          db.kpi.debt = num(v[0]); db.kpi.surcharge = num(v[1]); db.kpi.overpay = num(v[2]);
-          db.series.debt[db.series.debt.length - 1] = db.kpi.debt;
-          db.series.surcharge[db.series.surcharge.length - 1] = db.kpi.surcharge;
-          db.series.overpay[db.series.overpay.length - 1] = db.kpi.overpay;
-        });
-      },
+      title: t("debts.kpi.overpay"), subtitle: t("debts.dynamics"), type: "bar", barOpts: { money: true },
       data: {
-        labels: months,
-        datasets: [
-          { label: t("debts.series.debt"), values: db.series.debt, color: "10", fill: true },
-          { label: t("debts.series.surcharge"), values: db.series.surcharge, color: "4" },
-          { label: t("debts.series.overpay"), values: db.series.overpay, color: "3" }
-        ]
+        labels: db.rows.map(function (r) { return Fmt.date(r.date) + " • " + r.district; }),
+        datasets: [{ label: t("debts.kpi.overpay"), values: db.rows.map(function (r) { return r.overpay; }), color: "3" }]
       },
-      height: 340,
-      table: {
-        columns: [{ key: "l", label: t("chart.months") }]
-          .concat([["debt", "debts.series.debt"], ["surcharge", "debts.series.surcharge"], ["overpay", "debts.series.overpay"]].map(function (p) {
-            return { key: p[0], label: t(p[1]), align: "right", render: (function (k) { return function (r) { return money(r[k]); }; })(p[0]) };
-          })),
-        rows: months.map(function (mo, i) { return { l: mo, debt: db.series.debt[i], surcharge: db.series.surcharge[i], overpay: db.series.overpay[i] }; })
-      }
+      height: 300
     })));
 
     page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
-      h("div", { class: "card__head" }, h("div", { class: "card__title", text: t("debts.table.title") })),
+      cardHead("debts.table.title", {}),
       h("div", { class: "card__body card__body--flush" }, UI.DataTable({
         sticky: true,
         columns: [
-          { key: "cp", label: t("debts.counterparty"), sticky: "left", strong: true },
-          { key: "date", label: t("common.date"), render: function (r) { return Fmt.date(r.date); } },
-          { key: "amount", label: t("common.amount"), align: "right", render: function (r) { return money(r.amount); } },
-          { key: "status", label: t("common.status"), render: function (r) { return UI.StatusBadge(r.status); } },
-          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) { return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
-            openEdit(r.cp, [
-              { label: t("debts.counterparty"), value: r.cp },
-              { label: t("common.amount"), value: r.amount, type: "number" },
-              { label: t("common.date"), value: r.date, type: "date" }
-            ], function (v) { r.cp = v[0]; r.amount = num(v[1]); r.date = v[2]; });
-          } }); } }
+          { key: "date", label: t("common.date"), sticky: "left", strong: true, render: function (r) { return Fmt.date(r.date); } },
+          { key: "district", label: t("debts.district") },
+          { key: "debt", label: t("debts.kpi.debt"), align: "right", render: function (r) { return money(r.debt); } },
+          { key: "surcharge", label: t("debts.kpi.surcharge"), align: "right", render: function (r) { return money(r.surcharge); } },
+          { key: "overpay", label: t("debts.kpi.overpay"), align: "right", render: function (r) { return money(r.overpay); } },
+          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+            return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
+              openEdit(r.district, [
+                { label: t("debts.kpi.debt"), value: r.debt, type: "number" },
+                { label: t("debts.kpi.surcharge"), value: r.surcharge, type: "number" },
+                { label: t("debts.kpi.overpay"), value: r.overpay, type: "number" }
+              ], function (v) { r.debt = num(v[0]); r.surcharge = num(v[1]); r.overpay = num(v[2]); });
+            } });
+          } }
         ],
         rows: db.rows
       }))
@@ -507,105 +535,164 @@
     return page;
   }
 
-  /* --- MIB --- */
+  /* --- MIB (enforcement) — empty --- */
   function renderMib() {
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.mib.title", "page.mib.desc"));
-    // KPIs from movement
-    var m = D.mib.movement;
-    function sum(key) { var r = m.filter(function (x) { return x.key === key; })[0]; return r ? r.budget + r.paid : 0; }
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" },
-      m.map(function (r, i) {
-        return UI.KpiCard({ label: t(r.key), value: Fmt.compact(r.budget + r.paid), icon: ["wallet", "up", "down", "shield"][i] });
-      })
-    )));
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [mibMovementCard(), mibSourceCard()])));
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      h("div", { class: "card__body card__body--flush" },
+        D.mib.rows.length ? UI.DataTable({ sticky: true, columns: [
+          { key: "region", label: t("mib.region2"), sticky: "left", strong: true },
+          { key: "creditor", label: t("mib.creditor") },
+          { key: "exec", label: t("mib.exec_body") },
+          { key: "balance", label: t("mib.balance_acc") }
+        ], rows: D.mib.rows }) : UI.EmptyState({ icon: "shield" }))
+    ])));
     return page;
   }
 
-  /* --- Health --- */
+  /* --- Health (8.1-8.8 via Tabs) --- */
   function renderHealth() {
     var hd = D.health;
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.health.title", "page.health.desc"));
 
-    // Gauge / progress for bed-day execution
-    var pct = Math.round(hd.bedDayExecution * 1000) / 10;
-    var gaugeCard = h("div", { class: "card" }, [
-      cardHead("health.bedday_exec", { onEdit: function () {
-        openEdit(t("health.bedday_exec"), [
-          { label: t("health.bedday_fact"), value: hd.bedByType.factBedDays[0], type: "number" },
-          { label: t("health.bedday_plan"), value: hd.bedByType.planBedDays[0], type: "number" }
-        ], function (v) {
-          hd.bedByType.factBedDays[0] = num(v[0]); hd.bedByType.planBedDays[0] = num(v[1]);
-          hd.bedDayExecution = hd.bedByType.planBedDays[0] ? hd.bedByType.factBedDays[0] / hd.bedByType.planBedDays[0] : 0;
-        });
-      } }),
+    var tabs = UI.Tabs({ items: [
+      { id: "amb", label: t("health.tab.ambulatory"), render: healthAmbulatory },
+      { id: "gpop", label: t("health.tab.general_pop"), render: function () { return emptyCard("users"); } },
+      { id: "stat", label: t("health.tab.stationary"), render: healthStationary },
+      { id: "fac", label: t("health.tab.facility"), render: healthFacility },
+      { id: "lab", label: t("health.tab.lab"), render: healthLab },
+      { id: "blood", label: t("health.tab.blood"), render: function () { return emptyCard("heart"); } },
+      { id: "forensic", label: t("health.tab.forensic"), render: function () { return emptyCard("shield"); } },
+      { id: "emerg", label: t("health.tab.emergency"), render: function () { return emptyCard("zap"); } }
+    ] });
+    page.appendChild(h("div", { class: "section" }, tabs));
+    return page;
+  }
+
+  function emptyCard(icon) {
+    return h("div", { class: "card mt-xl" }, h("div", { class: "card__body card__body--flush" }, UI.EmptyState({ icon: icon })));
+  }
+
+  function healthAmbulatory() {
+    var rows = D.health.ambulatory;
+    var wrap = h("div", { class: "mt-xl" });
+    wrap.appendChild(h("div", { class: "cols", style: "--cols:3;--cols-md:2", id: "amb-grid" },
+      rows.map(function (r) { return UI.KpiCard({ label: t(r.key), value: Fmt.num(r.v), icon: "heart" }); })));
+    return wrap;
+  }
+
+  function healthStationary() {
+    var st = D.health.stationary;
+    var wrap = h("div", { class: "mt-xl" });
+    // KPIs + gauge
+    var kpis = h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      UI.KpiCard({ label: t("h.beds"), value: Fmt.num(st.total.beds), icon: "box" }),
+      UI.KpiCard({ label: t("h.patients"), value: Fmt.num(st.total.patients), icon: "users" }),
+      UI.KpiCard({ label: t("h.avg_days"), value: Fmt.num(st.total.avgDays, 2), icon: "check" }),
+      UI.KpiCard({ label: t("h.deaths_st"), value: Fmt.num(st.total.deaths), icon: "inbox" })
+    ]);
+    wrap.appendChild(h("div", { class: "section" }, kpis));
+
+    // gauge
+    var pct = st.total.exec;
+    var gauge = h("div", { class: "card" }, [
+      cardHead("h.exec", {}),
       h("div", { class: "card__body" }, [
         h("div", { class: "flex items-center justify-between mb-md" }, [
           h("span", { class: "text-display-sm tabular", style: "color:var(--text-primary)", text: Fmt.percent(pct) }),
           UI.StatusBadge("", { variant: pct >= 90 ? "success" : pct >= 75 ? "warning" : "danger", label: pct + "% " + t("common.of_plan"), dotless: true })
         ]),
-        (function () {
-          var bar = h("div", { class: "progress" }, h("div", { class: "progress__bar" + (pct >= 90 ? " progress__bar--success" : "") , style: "width:0%" }));
-          requestAnimationFrame(function () { bar.firstChild.style.width = Math.min(pct, 100) + "%"; });
-          return bar;
-        })(),
-        h("p", { class: "field__hint mt-md", text: Fmt.num(hd.bedByType.factBedDays[0]) + " / " + Fmt.num(hd.bedByType.planBedDays[0]) + " " + t("health.bedday_plan").toLowerCase() })
+        (function () { var b = h("div", { class: "progress" }, h("div", { class: "progress__bar" + (pct >= 90 ? " progress__bar--success" : ""), style: "width:0%" }));
+          requestAnimationFrame(function () { b.firstChild.style.width = Math.min(pct, 100) + "%"; }); return b; })(),
+        h("p", { class: "field__hint mt-md", text: Fmt.num(st.total.factDays) + " / " + Fmt.num(st.total.planDays) + " " + t("h.plan_days").toLowerCase() })
       ])
     ]);
-
-    // beds/plan/fact bar for stationary
-    var bedCard = Charts.ChartCard({
-      title: t("health.stationary"), subtitle: t("health.bedday_plan") + " · " + t("health.bedday_fact"),
-      type: "bar",
-      onEdit: function () {
-        openEdit(t("health.stationary"), [
-          { label: t("health.bedday_plan"), value: hd.bedByType.planBedDays[0], type: "number" },
-          { label: t("health.bedday_fact"), value: hd.bedByType.factBedDays[0], type: "number" }
-        ], function (v) {
-          hd.bedByType.planBedDays[0] = num(v[0]); hd.bedByType.factBedDays[0] = num(v[1]);
-          hd.bedDayExecution = hd.bedByType.planBedDays[0] ? hd.bedByType.factBedDays[0] / hd.bedByType.planBedDays[0] : 0;
-        });
-      },
+    var bedDayChart = Charts.ChartCard({
+      title: t("h.plan_days") + " · " + t("h.fact_days"), type: "bar",
       data: {
-        labels: [t("health.bedday_plan"), t("health.bedday_fact")],
-        datasets: [{ label: t("health.stationary"), values: [hd.bedByType.planBedDays[0], hd.bedByType.factBedDays[0]], color: "1" }]
-      },
-      height: 300
-    });
-
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [gaugeCard, bedCard])));
-
-    // patients by type (budget/paid/total)
-    var b = hd.byBudget.metrics;
-    page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
-      title: t("health.patients"), subtitle: t("health.by_type"), type: "bar",
-      onEdit: function () { editBudgetPaid("health.patients", b); },
-      data: {
-        labels: b.map(function (r) { return t(r.key); }),
+        labels: [t("mib.budget"), t("mib.paid"), t("common.total")],
         datasets: [
-          { label: t("mib.budget"), values: b.map(function (r) { return r.budget; }), color: "plan" },
-          { label: t("mib.paid"), values: b.map(function (r) { return r.paid; }), color: "actual" },
-          { label: t("common.total"), values: b.map(function (r) { return r.budget + r.paid; }), color: "positive" }
+          { label: t("h.plan_days"), values: [st.budget.planDays, st.paid.planDays, st.total.planDays], color: "plan" },
+          { label: t("h.fact_days"), values: [st.budget.factDays, st.paid.factDays, st.total.factDays], color: "actual" }
         ]
-      },
+      }, height: 300
+    });
+    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [gauge, bedDayChart])));
+
+    // patients bar + full table
+    var patientsChart = Charts.ChartCard({
+      title: t("h.patients"), subtitle: t("health.by_type"), type: "bar",
+      data: {
+        labels: [t("mib.budget"), t("mib.paid"), t("common.total")],
+        datasets: [{ label: t("h.patients"), values: [st.budget.patients, st.paid.patients, st.total.patients], color: "1" }]
+      }, height: 300,
+      table: {
+        sticky: true,
+        columns: [
+          { key: "m", label: t("health.metric"), sticky: "left", strong: true, render: function (r) { return t(r.m); } },
+          { key: "total", label: t("common.total"), align: "right", render: function (r) { return r.pct ? Fmt.percent(r.total) : Fmt.num(r.total, r.dec || 0); } },
+          { key: "budget", label: t("mib.budget"), align: "right", render: function (r) { return r.pct ? Fmt.percent(r.budget) : Fmt.num(r.budget, r.dec || 0); } },
+          { key: "paid", label: t("mib.paid"), align: "right", render: function (r) { return r.pct ? Fmt.percent(r.paid) : Fmt.num(r.paid, r.dec || 0); } }
+        ],
+        rows: [
+          { m: "h.beds", total: st.total.beds, budget: st.budget.beds, paid: st.paid.beds },
+          { m: "h.plan_days", total: st.total.planDays, budget: st.budget.planDays, paid: st.paid.planDays },
+          { m: "h.fact_days", total: st.total.factDays, budget: st.budget.factDays, paid: st.paid.factDays },
+          { m: "h.exec", total: st.total.exec, budget: st.budget.exec, paid: st.paid.exec, pct: true },
+          { m: "h.patients", total: st.total.patients, budget: st.budget.patients, paid: st.paid.patients },
+          { m: "h.avg_days", total: st.total.avgDays, budget: st.budget.avgDays, paid: st.paid.avgDays, dec: 2 },
+          { m: "h.deaths_st", total: st.total.deaths, budget: st.budget.deaths, paid: st.paid.deaths }
+        ]
+      }
+    });
+    wrap.appendChild(h("div", { class: "section" }, patientsChart));
+    return wrap;
+  }
+
+  function healthFacility() {
+    var f = D.health.facility;
+    var totalRooms = f.rooms.reduce(function (a, b) { return a + b; }, 0);
+    var totalEq = f.equipment.reduce(function (a, b) { return a + b; }, 0);
+    var totalArea = f.areas.reduce(function (a, b) { return a + b; }, 0);
+    var wrap = h("div", { class: "mt-xl" });
+    wrap.appendChild(h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      UI.KpiCard({ label: t("h.warehouses"), value: Fmt.num(f.warehouses), icon: "box" }),
+      UI.KpiCard({ label: t("h.rooms"), value: Fmt.num(totalRooms), icon: "grid" }),
+      UI.KpiCard({ label: t("h.equipment"), value: Fmt.num(totalEq), icon: "zap" }),
+      UI.KpiCard({ label: t("h.areas"), value: Fmt.num(totalArea, 2), icon: "map" })
+    ]));
+    wrap.appendChild(h("div", { class: "section mt-xl" }, Charts.ChartCard({
+      title: t("h.areas"), type: "bar", barOpts: { horizontal: true },
+      data: { labels: f.areas.map(function (_, i) { return "№ " + (i + 1); }), datasets: [{ label: t("h.areas"), values: f.areas, color: "6" }] },
       height: 320
     })));
+    return wrap;
+  }
 
-    // patients stationary vs ambulatory
-    page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
-      title: t("health.patients"), subtitle: t("health.stationary") + " · " + t("health.ambulatory"), type: "doughnut",
+  function healthLab() {
+    var lab = D.health.lab;
+    var wrap = h("div", { class: "mt-xl" });
+    var items = lab.filter(function (r) { return r.key !== "lab.total"; });
+    wrap.appendChild(Charts.ChartCard({
+      title: t("lab.total"), subtitle: Fmt.num(lab[0].v), type: "bar", barOpts: { horizontal: true },
       onEdit: function () {
-        openEdit(t("health.patients"), [
-          { label: t("health.stationary"), value: hd.bedByType.patients[0], type: "number" },
-          { label: t("health.ambulatory"), value: hd.bedByType.patients[1], type: "number" }
-        ], function (v) { hd.bedByType.patients[0] = num(v[0]); hd.bedByType.patients[1] = num(v[1]); });
+        openEdit(t("lab.total"), lab.map(function (r) { return { label: t(r.key), value: r.v, type: "number" }; }),
+          function (v) { lab.forEach(function (r, i) { r.v = num(v[i]); }); });
       },
-      data: { labels: [t("health.stationary"), t("health.ambulatory")], values: hd.bedByType.patients },
-      height: 300
-    })));
-    return page;
+      data: { labels: items.map(function (r) { return t(r.key); }), datasets: [{ label: t("common.count"), values: items.map(function (r) { return r.v; }), color: "2" }] },
+      height: 400,
+      table: {
+        sticky: true,
+        columns: [
+          { key: "key", label: t("health.metric"), sticky: "left", strong: true, render: function (r) { return t(r.key); } },
+          { key: "v", label: t("common.count"), align: "right", render: function (r) { return Fmt.num(r.v); } }
+        ],
+        rows: lab
+      }
+    }));
+    return wrap;
   }
 
   /* ----------------------------- Sparklines ------------------------------ */
@@ -677,7 +764,7 @@
       h("button", { class: "hamburger", type: "button", "aria-label": "Menu", onClick: openMobileSidebar }, UI.icon("menu")),
       h("div", { class: "header__title", id: "header-title", text: t("nav.general") }),
       h("div", { class: "header__spacer" }),
-      h("div", { class: "header__actions" }, [langMenu(), themeToggle(), profile()])
+      h("div", { class: "header__actions" }, [themeToggle(), profile()])
     ]);
 
     mainEl = h("main", { class: "main", id: "main" });
@@ -776,6 +863,7 @@
   /* ----------------------------- Boot ----------------------------------- */
   function boot() {
     I18N.init();
+    I18N.setLang("uz-latn"); // project is Uzbek-only for now; localization comes later
     initTheme();
     buildShell();
     initCollapse();

@@ -169,6 +169,17 @@
 }
 .kv__key { color: var(--text-tertiary); font-weight: var(--font-weight-medium); background: var(--bg-secondary-subtle, transparent); }
 .kv__val { color: var(--text-primary); }
+.kv__val--empty { color: var(--text-placeholder); font-style: italic; }
+.kv__val.strong { font-weight: var(--font-weight-semibold); }
+
+/* Bank account number lists */
+.acc-list { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.acc-num {
+  font-family: var(--font-family-mono); font-size: var(--text-xs);
+  padding: var(--spacing-xs) var(--spacing-md); border-radius: var(--radius-sm);
+  background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-secondary);
+  letter-spacing: 0.02em; white-space: nowrap;
+}
 @media (max-width: 640px) {
   .kv { grid-template-columns: 1fr; }
   .kv__key { border-bottom: none; padding-bottom: var(--spacing-xxs); }
