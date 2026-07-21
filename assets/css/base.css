@@ -1,0 +1,88 @@
+/* ==========================================================================
+   Base reset + primitives. Uses only design tokens from tokens.css.
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--text-sm);
+  line-height: var(--text-sm-lh);
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+}
+
+img, svg, video, canvas { display: block; max-width: 100%; }
+canvas { height: auto; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+a { color: var(--text-brand-secondary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { list-style: none; padding: 0; }
+
+:focus-visible {
+  outline: 2px solid var(--border-brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* Scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--border-primary) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: var(--radius-full); border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* ---- Typography helpers ---- */
+.text-display-sm { font-size: var(--display-sm); line-height: var(--display-sm-lh); font-weight: var(--font-weight-semibold); letter-spacing: -0.02em; }
+.text-display-xs { font-size: var(--display-xs); line-height: var(--display-xs-lh); font-weight: var(--font-weight-semibold); letter-spacing: -0.01em; }
+.text-xl  { font-size: var(--text-xl); line-height: var(--text-xl-lh); }
+.text-lg  { font-size: var(--text-lg); line-height: var(--text-lg-lh); }
+.text-md  { font-size: var(--text-md); line-height: var(--text-md-lh); }
+.text-sm  { font-size: var(--text-sm); line-height: var(--text-sm-lh); }
+.text-xs  { font-size: var(--text-xs); line-height: var(--text-xs-lh); }
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+.font-bold { font-weight: var(--font-weight-bold); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-brand { color: var(--text-brand-secondary); }
+.tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* ---- Layout utilities ---- */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1 1 0%; }
+.gap-xs { gap: var(--spacing-xs); }
+.gap-md { gap: var(--spacing-md); }
+.gap-lg { gap: var(--spacing-lg); }
+.gap-xl { gap: var(--spacing-xl); }
+.gap-2xl { gap: var(--spacing-2xl); }
+.grid { display: grid; }
+.hidden { display: none !important; }
+.w-full { width: 100%; }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-xl { margin-top: var(--spacing-xl); }
+.mb-md { margin-bottom: var(--spacing-md); }
+
+/* Visually hidden (screen-reader only) */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* Responsive grid columns */
+.cols { display: grid; gap: var(--spacing-xl); grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); }
+@media (max-width: 1024px) { .cols { grid-template-columns: repeat(var(--cols-md, var(--cols, 1)), minmax(0, 1fr)); } }
+@media (max-width: 640px)  { .cols { grid-template-columns: 1fr; } }

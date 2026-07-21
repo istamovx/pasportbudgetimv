@@ -1,0 +1,8 @@
+<svg width="180" height="40" viewBox="0 0 180 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Budjet Passport">
+  <rect width="40" height="40" rx="10" fill="#155EEF"/>
+  <rect x="10" y="20" width="4.5" height="10" rx="1.5" fill="#fff" fill-opacity="0.85"/>
+  <rect x="17.75" y="15" width="4.5" height="15" rx="1.5" fill="#fff"/>
+  <rect x="25.5" y="10" width="4.5" height="20" rx="1.5" fill="#fff" fill-opacity="0.85"/>
+  <text x="52" y="19" font-family="Inter, system-ui, sans-serif" font-size="16" font-weight="700" fill="#181D27">Budjet</text>
+  <text x="52" y="34" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="500" fill="#535862">Passport</text>
+</svg>
