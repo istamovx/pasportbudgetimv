@@ -54,7 +54,10 @@
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>',
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
-    "chevron-left": '<path d="M15 18l-6-6 6-6"/>'
+    "chevron-left": '<path d="M15 18l-6-6 6-6"/>',
+    "chevron-down": '<path d="M6 9l6 6 6-6"/>',
+    building: '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/>',
+    "switch": '<path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/>'
   };
   function icon(name, cls) {
     var svg = 'data:', wrap = h("span", { class: "icon " + (cls || ""), "aria-hidden": "true" });

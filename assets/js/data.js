@@ -9,6 +9,7 @@
 
   global.DATA = {
     meta: { orgId: "rigiatm", reportYear: 2026, updatedAt: "2026-04-16" },
+    user: { name: "Asadov Saidamirxon Maxmudxonovich", role: "Tizim administratori", initials: "SA" },
     monthKeys: ["chart.jan", "chart.feb", "chart.mar", "chart.apr", "chart.may", "chart.jun",
       "chart.jul", "chart.aug", "chart.sep", "chart.oct", "chart.nov", "chart.dec"],
 

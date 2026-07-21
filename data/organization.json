@@ -4,6 +4,11 @@
     "reportYear": 2026,
     "updatedAt": "2026-04-16"
   },
+  "user": {
+    "name": "Asadov Saidamirxon Maxmudxonovich",
+    "role": "Tizim administratori",
+    "initials": "SA"
+  },
   "monthKeys": [
     "chart.jan",
     "chart.feb",

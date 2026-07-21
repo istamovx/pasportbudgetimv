@@ -908,11 +908,42 @@
   }
 
   function profile() {
-    var name = t("general.f.head") + ": A. R. Karimov";
-    return h("button", { class: "profile", type: "button", title: name }, [
-      h("div", { class: "avatar", text: "AK" }),
-      h("span", { class: "profile__name", text: "A. R. Karimov" })
+    var u = D.user, stir = "201190732";
+    var trigger = h("button", { class: "profile", type: "button", title: u.name }, [
+      h("div", { class: "avatar", text: u.initials }),
+      h("div", { class: "profile__text" }, [
+        h("span", { class: "profile__name", text: u.name }),
+        h("span", { class: "profile__role", text: u.role })
+      ]),
+      UI.icon("chevron-down", "profile__chev")
     ]);
+    var panel = h("div", { class: "menu__panel profile-panel" }, [
+      h("div", { class: "profile-panel__user" }, [
+        h("div", { class: "avatar avatar--lg", text: u.initials }),
+        h("div", { class: "profile-panel__meta" }, [
+          h("div", { class: "profile-panel__name", text: u.name, title: u.name }),
+          h("div", { class: "profile-panel__role", text: u.role })
+        ])
+      ]),
+      h("div", { class: "profile-panel__org" }, [
+        h("div", { class: "profile-panel__org-icon" }, UI.icon("building")),
+        h("div", { style: "min-width:0" }, [
+          h("div", { class: "profile-panel__org-name", text: "“" + t("app.org") + "”", title: t("app.org") }),
+          h("div", { class: "profile-panel__stir", text: "STIR: " + stir })
+        ])
+      ]),
+      h("div", { class: "profile-panel__actions" }, [
+        UI.Button({ label: "Tashkilot tanlash", variant: "secondary", icon: "switch", onClick: function () { panel.classList.remove("is-open"); } }),
+        h("button", { class: "btn btn--danger-ghost", type: "button", onClick: function () { window.location.href = "login.html"; } }, [
+          UI.icon("logout"), h("span", { text: "Tizimdan chiqish" })
+        ])
+      ])
+    ]);
+    var wrap = h("div", { class: "menu profile-menu" }, [trigger, panel]);
+    trigger.addEventListener("click", function (e) { e.stopPropagation(); panel.classList.toggle("is-open"); });
+    document.addEventListener("click", function () { panel.classList.remove("is-open"); });
+    panel.addEventListener("click", function (e) { e.stopPropagation(); });
+    return wrap;
   }
 
   /* Language menu */
