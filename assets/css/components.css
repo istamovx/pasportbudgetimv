@@ -176,6 +176,7 @@
 .drawer__title { font-weight: var(--font-weight-semibold); font-size: var(--text-lg); color: var(--text-primary); }
 .drawer__desc { color: var(--text-tertiary); font-size: var(--text-sm); margin-top: 2px; }
 .drawer__body { flex: 1; overflow-y: auto; padding: var(--spacing-2xl); display: flex; flex-direction: column; gap: var(--spacing-xl); }
+.drawer__body > * { flex-shrink: 0; }   /* children keep full height; the drawer scrolls, not each table */
 .drawer__foot { display: flex; gap: var(--spacing-md); padding: var(--spacing-xl) var(--spacing-2xl); border-top: 1px solid var(--border-secondary); }
 .drawer__foot .btn { flex: 1; }
 .icon-btn { width: 36px; height: 36px; border-radius: var(--radius-sm); display: grid; place-items: center; color: var(--fg-quaternary); flex: none; }
