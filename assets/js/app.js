@@ -13,7 +13,9 @@
     var lang = I18N.current;
     if (lang === "ru" && item.ru) return item.ru;
     if (lang === "uz-cyrl" && item.cyr) return item.cyr;
-    return item.value != null ? item.value : "";
+    if (item.value != null) return item.value;
+    if (item.name != null) return item.name;
+    return "";
   }
   function tv(item) { // key/value with optional i18nValue flag
     var v = item.i18nValue ? t(item.value) : loc(item);
@@ -66,13 +68,13 @@
     // KPIs
     var kpis = h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
       UI.KpiCard({ label: t("general.kpi.staff_total"), value: Fmt.num(g.kpi.staffTotal) + " " + t("common.people"), icon: "users",
-        trend: { dir: "up", text: "+3.2%" }, sparkline: [400, 405, 410, 408, 415, 418, 420], sparkColor: "1" }),
+        trend: { dir: "up", text: "+3.2%" } }),
       UI.KpiCard({ label: t("general.kpi.occupied"), value: Fmt.num(g.kpi.occupied), icon: "check",
-        trend: { dir: "up", text: "88.6%" }, sparkline: [350, 358, 362, 360, 368, 370, 372], sparkColor: "3" }),
+        trend: { dir: "up", text: "88.6%" } }),
       UI.KpiCard({ label: t("general.kpi.vacant"), value: Fmt.num(g.kpi.vacant), icon: "inbox",
-        trend: { dir: "down", text: "−4" }, sparkline: [60, 55, 52, 54, 50, 49, 48], sparkColor: "4" }),
+        trend: { dir: "down", text: "−4" } }),
       UI.KpiCard({ label: t("general.kpi.debt"), value: Fmt.compact(g.kpi.debt), icon: "wallet",
-        trend: { dir: "down", text: "−2.1%" }, sparkline: [1310, 1290, 1275, 1260, 1258, 1252, 1250], sparkColor: "10" })
+        trend: { dir: "down", text: "−2.1%" } })
     ]);
     page.appendChild(h("div", { class: "section" }, kpis));
 
@@ -147,18 +149,25 @@
   }
 
   /* --- Location --- */
+  var locationMap = null;
   function renderLocation() {
     var l = D.location;
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.location.title", "page.location.desc"));
 
-    var addressCard = h("div", { class: "card" }, [
-      h("div", { class: "card__head" }, h("div", { class: "card__title", text: t("general.f.address") })),
-      h("div", { class: "card__body" }, [
-        h("p", { class: "text-md", style: "color:var(--text-primary)", text: loc(l.address) }),
-        h("p", { class: "text-secondary mt-md", text: l.lat.toFixed(3) + ", " + l.lng.toFixed(3) })
-      ])
+    // Real interactive map (Leaflet + OpenStreetMap)
+    var mapEl = h("div", { class: "map", id: "org-map" });
+    var mapCard = h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, [
+        h("div", {}, [
+          h("div", { class: "card__title", text: t("general.f.address") }),
+          h("div", { class: "card__subtitle", text: loc(l.address) })
+        ]),
+        UI.StatusBadge("", { variant: "brand", label: l.lat.toFixed(4) + ", " + l.lng.toFixed(4), dotless: true })
+      ]),
+      h("div", { class: "card__body card__body--flush" }, mapEl)
     ]);
+    page.appendChild(h("div", { class: "section" }, mapCard));
 
     var branchTable = h("div", { class: "card" }, [
       h("div", { class: "card__head" }, h("div", { class: "card__title", text: t("nav.location") })),
@@ -172,9 +181,35 @@
         rows: l.branches
       }))
     ]);
+    page.appendChild(h("div", { class: "section" }, branchTable));
 
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [addressCard, branchTable])));
+    // Init map after the container is mounted and has dimensions
+    requestAnimationFrame(function () { initLocationMap(mapEl, l); });
     return page;
+  }
+
+  function initLocationMap(el, l) {
+    if (!global.L || !document.body.contains(el)) return;
+    if (locationMap) { try { locationMap.remove(); } catch (e) {} locationMap = null; }
+    el.classList.toggle("map--dark", (document.documentElement.getAttribute("data-theme") === "dark"));
+
+    var map = global.L.map(el, { scrollWheelZoom: false, attributionControl: true }).setView([l.lat, l.lng], 15);
+    global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    var markerIcon = global.L.icon({
+      iconUrl: "assets/vendor/leaflet/images/marker-icon.png",
+      iconRetinaUrl: "assets/vendor/leaflet/images/marker-icon-2x.png",
+      shadowUrl: "assets/vendor/leaflet/images/marker-shadow.png",
+      iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+    });
+    global.L.marker([l.lat, l.lng], { icon: markerIcon }).addTo(map)
+      .bindPopup("<b>" + t("app.org") + "</b><br>" + loc(l.address));
+    locationMap = map;
+    // enable wheel-zoom only after click (avoids hijacking page scroll)
+    map.on("click", function () { map.scrollWheelZoom.enable(); });
+    setTimeout(function () { try { map.invalidateSize(); } catch (e) {} }, 200);
   }
 
   /* --- Staff --- */
@@ -297,9 +332,9 @@
 
     var months = D.monthKeys.map(function (k) { return t(k); });
     page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:3;--cols-md:1" }, [
-      UI.KpiCard({ label: t("debts.kpi.debt"), value: Fmt.compact(db.kpi.debt), icon: "wallet", trend: { dir: "down", text: "−2.1%" }, sparkline: db.series.debt.slice(-7), sparkColor: "10" }),
-      UI.KpiCard({ label: t("debts.kpi.surcharge"), value: Fmt.compact(db.kpi.surcharge), icon: "up", trend: { dir: "up", text: "+3.6%" }, sparkline: db.series.surcharge.slice(-7), sparkColor: "4" }),
-      UI.KpiCard({ label: t("debts.kpi.overpay"), value: Fmt.compact(db.kpi.overpay), icon: "down", trend: { dir: "up", text: "+0.8%" }, sparkline: db.series.overpay.slice(-7), sparkColor: "3" })
+      UI.KpiCard({ label: t("debts.kpi.debt"), value: Fmt.compact(db.kpi.debt), icon: "wallet", trend: { dir: "down", text: "−2.1%" } }),
+      UI.KpiCard({ label: t("debts.kpi.surcharge"), value: Fmt.compact(db.kpi.surcharge), icon: "up", trend: { dir: "up", text: "+3.6%" } }),
+      UI.KpiCard({ label: t("debts.kpi.overpay"), value: Fmt.compact(db.kpi.overpay), icon: "down", trend: { dir: "up", text: "+0.8%" } })
     ])));
 
     page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
@@ -434,6 +469,7 @@
     current = id;
     try { localStorage.setItem("pb.section", id); } catch (e) {}
     Charts.destroyAll();
+    if (locationMap) { try { locationMap.remove(); } catch (e) {} locationMap = null; }
     mainEl.innerHTML = "";
     var node = SECTIONS[id]();
     mainEl.appendChild(node);
@@ -451,6 +487,7 @@
 
     // Sidebar
     var nav = h("nav", { class: "sidebar__nav" });
+    nav.appendChild(h("div", { class: "sidebar__nav-label", "data-i18n": "nav.menu", text: t("nav.menu") }));
     NAV.forEach(function (item) {
       var el = h("button", { class: "nav-item", type: "button", dataset: { label: t("nav." + item.id) }, onClick: function () { navigate(item.id); } }, [
         h("span", { class: "nav-item__icon" }, UI.icon(item.icon)),
@@ -465,8 +502,11 @@
 
     var sidebar = h("aside", { class: "sidebar", id: "sidebar" }, [
       h("div", { class: "sidebar__brand" }, [
-        h("img", { class: "sidebar__logo sidebar__logo--full", src: "assets/img/logo.svg", alt: t("app.name"), width: "160", height: "40" }),
-        h("img", { class: "sidebar__logo sidebar__logo--symbol", src: "assets/img/symbol.svg", alt: t("app.name"), width: "40", height: "40" }),
+        h("img", { class: "sidebar__logo sidebar__logo--symbol", src: "assets/img/Symbol.svg", alt: t("app.name"), width: "34", height: "34" }),
+        h("div", { class: "sidebar__brand-text" }, [
+          h("div", { class: "sidebar__brand-name", "data-i18n": "app.name", text: t("app.name") }),
+          h("div", { class: "sidebar__brand-sub", "data-i18n": "app.subtitle", text: t("app.subtitle") })
+        ]),
         collapseBtn
       ]),
       nav,
@@ -561,8 +601,11 @@
     var app = document.getElementById("app");
     var collapsed = app.classList.toggle("is-collapsed");
     try { localStorage.setItem("pb.collapsed", collapsed ? "1" : "0"); } catch (e) {}
-    // charts must resize to the new width
-    setTimeout(function () { if (global.Charts) Object.values(global.Chart.instances || {}).forEach(function (c) { try { c.resize(); } catch (e) {} }); }, 260);
+    // charts + map must resize to the new width
+    setTimeout(function () {
+      if (global.Chart) Object.values(global.Chart.instances || {}).forEach(function (c) { try { c.resize(); } catch (e) {} });
+      if (locationMap) try { locationMap.invalidateSize(); } catch (e) {}
+    }, 260);
   }
   function initCollapse() {
     var c = null; try { c = localStorage.getItem("pb.collapsed"); } catch (e) {}

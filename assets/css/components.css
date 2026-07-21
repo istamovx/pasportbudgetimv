@@ -2,6 +2,11 @@
    Reusable components. Token-driven. Reusable for future Admin (multi-org).
    ========================================================================== */
 
+/* ---------- Icon base (prevents unconstrained SVGs from blowing up) ---------- */
+.icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: none; line-height: 0; }
+.icon > svg { display: block; width: 100%; height: 100%; }
+.kpi__trend .icon { width: 14px; height: 14px; }
+
 /* ---------- Buttons (primary / secondary / tertiary hierarchy) ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-md);

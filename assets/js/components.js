@@ -117,8 +117,9 @@
     var foot = h("div", { class: "kpi__foot" });
     if (opts.trend) {
       var dir = opts.trend.dir === "down" ? "down" : "up";
+      // Arrow icons intentionally omitted; direction is conveyed by color.
       foot.appendChild(h("span", { class: "kpi__trend kpi__trend--" + dir }, [
-        icon(dir), h("span", { text: opts.trend.text })
+        h("span", { text: opts.trend.text })
       ]));
     } else { foot.appendChild(h("span")); }
 
