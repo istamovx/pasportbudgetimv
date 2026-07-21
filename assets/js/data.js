@@ -157,16 +157,24 @@
 
     /* 8. Sog'liqni saqlash */
     health: {
-      ambulatory: [
-        { key: "h.attached_total", v: 27 }, { key: "h.age_0_18", v: 21 }, { key: "h.age_18plus", v: 6 },
-        { key: "h.teens", v: 9 }, { key: "h.fertile_women", v: 9 }, { key: "h.births", v: 9 },
-        { key: "h.deaths", v: 93 }, { key: "h.physio", v: 9 }, { key: "h.free_meds", v: 10 }
-      ],
-      generalPopulation: null,
+      /* 8.1 Ambulator — attached_total is computed (age_0_18 + age_18plus) */
+      ambulatory: {
+        age_0_18: 21, age_18plus: 6, teens: 9, fertile_women: 9, births: 9, deaths: 93,
+        physio: 9, free_meds: 10, women_18plus: null, family_poly: null, day_beds: null,
+        children_0_15: null, preschool: null, students: null
+      },
+      /* 8.2 Umumiy aholi — total computed */
+      generalPopulation: {
+        age_0_18: null, age_18plus: null, school: null, women_18plus: null,
+        preschool: null, students: null, children_0_15: null
+      },
+      /* 8.3 Statsionar — CRUD bo'linmalar; Jami va foizlar hisoblanadi */
       stationary: {
-        total: { beds: 229, planDays: 68990, factDays: 64260, exec: 93.14, patients: 5370, avgDays: 11.97, deaths: 62 },
-        budget: { beds: 182, planDays: 56770, factDays: 57674, exec: 101.58, patients: 4061, avgDays: 14.23, deaths: 45 },
-        paid: { beds: 47, planDays: 12220, factDays: 6586, exec: 53.82, patients: 1309, avgDays: 5.06, deaths: 17 }
+        departments: [
+          { name: "Statsionar bo‘limi",
+            budget: { beds: 182, planDays: 56770, factDays: 57674, patients: 4061, deaths: 45 },
+            paid: { beds: 47, planDays: 12220, factDays: 6586, patients: 1309, deaths: 17 } }
+        ]
       },
       facility: {
         warehouses: 1,

@@ -551,15 +551,13 @@
     return page;
   }
 
-  /* --- Health (8.1-8.8 via Tabs) --- */
+  /* --- Health (8.1–8.8): CRUD forms matching the real system --- */
   function renderHealth() {
-    var hd = D.health;
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.health.title", "page.health.desc"));
-
     var tabs = UI.Tabs({ items: [
       { id: "amb", label: t("health.tab.ambulatory"), render: healthAmbulatory },
-      { id: "gpop", label: t("health.tab.general_pop"), render: function () { return emptyCard("users"); } },
+      { id: "gpop", label: t("health.tab.general_pop"), render: healthGeneralPop },
       { id: "stat", label: t("health.tab.stationary"), render: healthStationary },
       { id: "fac", label: t("health.tab.facility"), render: healthFacility },
       { id: "lab", label: t("health.tab.lab"), render: healthLab },
@@ -575,126 +573,250 @@
     return h("div", { class: "card mt-xl" }, h("div", { class: "card__body card__body--flush" }, UI.EmptyState({ icon: icon })));
   }
 
+  /* ---- Form building blocks ---- */
+  function fmtField(v, dec) { return v == null ? "" : Fmt.num(v, dec || 0); }
+
+  /* fields: [{key,label,computed,dec,value}]  -> card with grid + Saqlash */
+  function formSection(title, fields, model, onSave, opts) {
+    opts = opts || {};
+    var grid = h("div", { class: "form-grid" });
+    var refs = {};
+    fields.forEach(function (f) {
+      var val = f.computed ? fmtField(f.value, f.dec) : (model[f.key] == null ? "" : model[f.key]);
+      var ff = UI.FormField({ label: f.label, value: val, type: f.computed ? "text" : "number",
+        computed: f.computed, hint: f.hint });
+      if (!f.computed) refs[f.key] = ff._input;
+      grid.appendChild(ff);
+    });
+    var foot = h("div", { class: "form-section__foot" }, UI.Button({ label: t("common.save"), variant: "primary", icon: "check", onClick: function () {
+      Object.keys(refs).forEach(function (k) { var raw = refs[k].value; model[k] = raw === "" ? null : num(raw); });
+      if (onSave) onSave();
+      navigate(current);
+    } }));
+    return h("div", { class: "form-section" }, [
+      title ? h("div", { class: "form-section__title", text: title }) : null,
+      h("div", { class: "form-section__body" }, grid),
+      foot
+    ]);
+  }
+
+  /* 8.1 Ambulator */
   function healthAmbulatory() {
-    var rows = D.health.ambulatory;
-    var wrap = h("div", { class: "mt-xl" });
-    wrap.appendChild(h("div", { class: "cols", style: "--cols:3;--cols-md:2", id: "amb-grid" },
-      rows.map(function (r) { return UI.KpiCard({ label: t(r.key), value: Fmt.num(r.v), icon: "heart" }); })));
-    return wrap;
+    var a = D.health.ambulatory;
+    var total = (a.age_0_18 || 0) + (a.age_18plus || 0);
+    var fields = [
+      { key: "attached_total", label: "Biriktirilgan jami aholi soni", computed: true, value: total },
+      { key: "age_0_18", label: "0 yoshdan 18 yoshgacha aholi" },
+      { key: "age_18plus", label: "18 yoshdan katta aholi" },
+      { key: "teens", label: "17–18 yoshgacha o‘smirlar aholi" },
+      { key: "fertile_women", label: "Tug‘ruq yoshidagi ayollar (15–49 yosh)" },
+      { key: "births", label: "O‘tgan yil/chorak tug‘ilishlar soni" },
+      { key: "deaths", label: "O‘tgan yil/chorak o‘limlar soni" },
+      { key: "physio", label: "Bajarilgan fizioterapevtik birliklar soni" },
+      { key: "free_meds", label: "Bepul/imtiyozli dori olayotgan bemorlar (4252430)" },
+      { key: "women_18plus", label: "Biriktirilgan 18 yoshdan katta ayollar soni" },
+      { key: "family_poly", label: "2-Tip OP ga biriktirilgan 1-Tip OP aholisi soni" },
+      { key: "day_beds", label: "Kunduzgi statsionar o‘rinlar soni" },
+      { key: "children_0_15", label: "Biriktirilgan 0–15 yoshgacha bolalar soni" },
+      { key: "preschool", label: "Biriktirilgan MTT tarbiyalanuvchilari soni" },
+      { key: "students", label: "Biriktirilgan talaba-texnikum o‘quvchilari soni" }
+    ];
+    return h("div", { class: "mt-xl" }, formSection(t("health.tab.ambulatory"), fields, a));
+  }
+
+  /* 8.2 Umumiy aholi */
+  function healthGeneralPop() {
+    var g = D.health.generalPopulation;
+    var total = (g.age_0_18 || 0) + (g.age_18plus || 0);
+    var fields = [
+      { key: "total", label: "Hududdagi umumiy aholi soni", computed: true, value: total },
+      { key: "age_0_18", label: "0 yoshdan 18 yoshgacha aholi" },
+      { key: "age_18plus", label: "18 yoshdan katta yoshdagi aholi soni" },
+      { key: "school", label: "Maktab o‘quvchilari soni" },
+      { key: "women_18plus", label: "18 yoshdan oshgan katta ayollar soni" },
+      { key: "preschool", label: "MTT tarbiyalanuvchilari soni" },
+      { key: "students", label: "Talaba-texnikum o‘quvchilari soni" },
+      { key: "children_0_15", label: "0–15 yoshgacha bolalar soni" }
+    ];
+    return h("div", { class: "mt-xl" }, formSection("Hududdagi umumiy aholi soni va boshqa ko‘rsatkichlar", fields, g));
+  }
+
+  /* 8.3 Statsionar — computed totals + department CRUD */
+  function stSum(depts, side, f) { return depts.reduce(function (a, d) { return a + (d[side][f] || 0); }, 0); }
+  function stExec(m) { return m.planDays ? m.factDays / m.planDays * 100 : 0; }
+  function stAvg(m) { return m.patients ? m.factDays / m.patients : 0; }
+  function stTotals(depts) {
+    function side(s) { return { beds: stSum(depts, s, "beds"), planDays: stSum(depts, s, "planDays"), factDays: stSum(depts, s, "factDays"), patients: stSum(depts, s, "patients"), deaths: stSum(depts, s, "deaths") }; }
+    var b = side("budget"), p = side("paid");
+    var tot = { beds: b.beds + p.beds, planDays: b.planDays + p.planDays, factDays: b.factDays + p.factDays, patients: b.patients + p.patients, deaths: b.deaths + p.deaths };
+    return { budget: b, paid: p, total: tot };
   }
 
   function healthStationary() {
-    var st = D.health.stationary;
+    var st = D.health.stationary, depts = st.departments;
+    var T = stTotals(depts);
     var wrap = h("div", { class: "mt-xl" });
+
     // KPIs + gauge
-    var kpis = h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
-      UI.KpiCard({ label: t("h.beds"), value: Fmt.num(st.total.beds), icon: "box" }),
-      UI.KpiCard({ label: t("h.patients"), value: Fmt.num(st.total.patients), icon: "users" }),
-      UI.KpiCard({ label: t("h.avg_days"), value: Fmt.num(st.total.avgDays, 2), icon: "check" }),
-      UI.KpiCard({ label: t("h.deaths_st"), value: Fmt.num(st.total.deaths), icon: "inbox" })
-    ]);
-    wrap.appendChild(h("div", { class: "section" }, kpis));
+    var pct = stExec(T.total);
+    wrap.appendChild(h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      UI.KpiCard({ label: t("h.beds"), value: Fmt.num(T.total.beds), icon: "box" }),
+      UI.KpiCard({ label: t("h.patients"), value: Fmt.num(T.total.patients), icon: "users" }),
+      UI.KpiCard({ label: t("h.exec"), value: Fmt.percent(pct), icon: "check" }),
+      UI.KpiCard({ label: t("h.deaths_st"), value: Fmt.num(T.total.deaths), icon: "inbox" })
+    ]));
 
-    // gauge
-    var pct = st.total.exec;
-    var gauge = h("div", { class: "card" }, [
-      cardHead("h.exec", {}),
-      h("div", { class: "card__body" }, [
-        h("div", { class: "flex items-center justify-between mb-md" }, [
-          h("span", { class: "text-display-sm tabular", style: "color:var(--text-primary)", text: Fmt.percent(pct) }),
-          UI.StatusBadge("", { variant: pct >= 90 ? "success" : pct >= 75 ? "warning" : "danger", label: pct + "% " + t("common.of_plan"), dotless: true })
-        ]),
-        (function () { var b = h("div", { class: "progress" }, h("div", { class: "progress__bar" + (pct >= 90 ? " progress__bar--success" : ""), style: "width:0%" }));
-          requestAnimationFrame(function () { b.firstChild.style.width = Math.min(pct, 100) + "%"; }); return b; })(),
-        h("p", { class: "field__hint mt-md", text: Fmt.num(st.total.factDays) + " / " + Fmt.num(st.total.planDays) + " " + t("h.plan_days").toLowerCase() })
-      ])
-    ]);
-    var bedDayChart = Charts.ChartCard({
-      title: t("h.plan_days") + " · " + t("h.fact_days"), type: "bar",
-      data: {
-        labels: [t("mib.budget"), t("mib.paid"), t("common.total")],
-        datasets: [
-          { label: t("h.plan_days"), values: [st.budget.planDays, st.paid.planDays, st.total.planDays], color: "plan" },
-          { label: t("h.fact_days"), values: [st.budget.factDays, st.paid.factDays, st.total.factDays], color: "actual" }
-        ]
-      }, height: 300
-    });
-    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [gauge, bedDayChart])));
+    // Jami ko'rsatkichlar (computed, read-only)
+    var jamiFields = [
+      { label: "Jami — shifo o‘rinlari / koyka soni", value: T.total.beds },
+      { label: "Jami — o‘rin-kun rejasi", value: T.total.planDays },
+      { label: "Jami — o‘rin-kun bajarilishi", value: T.total.factDays },
+      { label: "Jami — o‘rin-kun ijrosi (%)", value: stExec(T.total), dec: 2 },
+      { label: "Jami — davolangan bemorlar", value: T.total.patients },
+      { label: "Jami — o‘rtacha davolanish kuni", value: stAvg(T.total), dec: 2 },
+      { label: "Jami — o‘limlar soni", value: T.total.deaths },
+      { label: "Byudjet — shifo o‘rinlari soni", value: T.budget.beds },
+      { label: "Byudjet — o‘rin-kun rejasi", value: T.budget.planDays },
+      { label: "Byudjet — o‘rin-kun bajarilishi", value: T.budget.factDays },
+      { label: "Byudjet — davolangan bemorlar", value: T.budget.patients },
+      { label: "Byudjet — o‘lim soni", value: T.budget.deaths },
+      { label: "Pullik — shifo o‘rinlari / koyka", value: T.paid.beds },
+      { label: "Pullik — o‘rin-kun rejasi", value: T.paid.planDays },
+      { label: "Pullik — o‘rin-kun bajarilishi", value: T.paid.factDays },
+      { label: "Pullik — davolangan bemorlar", value: T.paid.patients },
+      { label: "Pullik — o‘lim jami", value: T.paid.deaths }
+    ].map(function (f) { return { key: "_ro", label: f.label, computed: true, value: f.value, dec: f.dec }; });
+    wrap.appendChild(h("div", { class: "section mt-xl" }, formSection("Jami ko‘rsatkichlar", jamiFields, {})));
 
-    // patients bar + full table
-    var patientsChart = Charts.ChartCard({
-      title: t("h.patients"), subtitle: t("health.by_type"), type: "bar",
-      data: {
-        labels: [t("mib.budget"), t("mib.paid"), t("common.total")],
-        datasets: [{ label: t("h.patients"), values: [st.budget.patients, st.paid.patients, st.total.patients], color: "1" }]
-      }, height: 300,
-      table: {
-        sticky: true,
-        columns: [
-          { key: "m", label: t("health.metric"), sticky: "left", strong: true, render: function (r) { return t(r.m); } },
-          { key: "total", label: t("common.total"), align: "right", render: function (r) { return r.pct ? Fmt.percent(r.total) : Fmt.num(r.total, r.dec || 0); } },
-          { key: "budget", label: t("mib.budget"), align: "right", render: function (r) { return r.pct ? Fmt.percent(r.budget) : Fmt.num(r.budget, r.dec || 0); } },
-          { key: "paid", label: t("mib.paid"), align: "right", render: function (r) { return r.pct ? Fmt.percent(r.paid) : Fmt.num(r.paid, r.dec || 0); } }
-        ],
-        rows: [
-          { m: "h.beds", total: st.total.beds, budget: st.budget.beds, paid: st.paid.beds },
-          { m: "h.plan_days", total: st.total.planDays, budget: st.budget.planDays, paid: st.paid.planDays },
-          { m: "h.fact_days", total: st.total.factDays, budget: st.budget.factDays, paid: st.paid.factDays },
-          { m: "h.exec", total: st.total.exec, budget: st.budget.exec, paid: st.paid.exec, pct: true },
-          { m: "h.patients", total: st.total.patients, budget: st.budget.patients, paid: st.paid.patients },
-          { m: "h.avg_days", total: st.total.avgDays, budget: st.budget.avgDays, paid: st.paid.avgDays, dec: 2 },
-          { m: "h.deaths_st", total: st.total.deaths, budget: st.budget.deaths, paid: st.paid.deaths }
-        ]
-      }
-    });
-    wrap.appendChild(h("div", { class: "section" }, patientsChart));
+    // Departments (CRUD)
+    var deptsWrap = h("div", { class: "section" });
+    deptsWrap.appendChild(h("div", { class: "section__head" }, [
+      h("div", { class: "section__title", text: "Bo‘linmalar (" + depts.length + ")" }),
+      UI.Button({ label: "Bo‘lim qo‘shish", variant: "primary", icon: "plus", onClick: function () { addDept(st); } })
+    ]));
+    depts.forEach(function (d, i) { deptsWrap.appendChild(deptCard(st, d, i)); });
+    wrap.appendChild(deptsWrap);
     return wrap;
   }
 
+  function deptMetricsTable(d) {
+    var rows = [
+      { m: "Shifo o‘rinlari (koyka)", b: d.budget.beds, p: d.paid.beds },
+      { m: "O‘rin-kun rejasi", b: d.budget.planDays, p: d.paid.planDays },
+      { m: "O‘rin-kun bajarilishi", b: d.budget.factDays, p: d.paid.factDays },
+      { m: "O‘rin-kun ijrosi (%)", b: stExec(d.budget), p: stExec(d.paid), pct: true },
+      { m: "Davolangan bemorlar", b: d.budget.patients, p: d.paid.patients },
+      { m: "Bir bemorni o‘rtacha davolanish kuni", b: stAvg(d.budget), p: stAvg(d.paid), dec: 2 },
+      { m: "O‘lim soni", b: d.budget.deaths, p: d.paid.deaths }
+    ];
+    return UI.DataTable({
+      sticky: true,
+      columns: [
+        { key: "m", label: t("health.metric"), sticky: "left", strong: true },
+        { key: "b", label: t("mib.budget"), align: "right", render: function (r) { return r.pct ? Fmt.percent(r.b) : Fmt.num(r.b, r.dec || 0); } },
+        { key: "p", label: t("mib.paid"), align: "right", render: function (r) { return r.pct ? Fmt.percent(r.p) : Fmt.num(r.p, r.dec || 0); } }
+      ],
+      rows: rows
+    });
+  }
+
+  function deptCard(st, d, i) {
+    return h("div", { class: "card mb-md" }, [
+      h("div", { class: "card__head" }, [
+        h("div", { class: "card__title", text: d.name }),
+        h("div", { class: "card__head-actions" }, [
+          UI.Button({ icon: "edit", variant: "secondary", size: "sm", label: t("common.edit"), onClick: function () { editDept(st, d); } }),
+          UI.Button({ icon: "close", variant: "tertiary", size: "sm", title: t("common.close"), onClick: function () {
+            st.departments.splice(i, 1); navigate(current);
+          } })
+        ])
+      ]),
+      h("div", { class: "card__body card__body--flush" }, deptMetricsTable(d))
+    ]);
+  }
+
+  function deptFields(d) {
+    return [
+      { label: "Nomi", value: d.name, _name: true },
+      { label: "Byudjet — Shifo o‘rinlari (koyka)", value: d.budget.beds, side: "budget", f: "beds" },
+      { label: "Byudjet — O‘rin-kun rejasi", value: d.budget.planDays, side: "budget", f: "planDays" },
+      { label: "Byudjet — O‘rin-kun bajarilishi", value: d.budget.factDays, side: "budget", f: "factDays" },
+      { label: "Byudjet — Davolangan bemorlar", value: d.budget.patients, side: "budget", f: "patients" },
+      { label: "Byudjet — O‘lim soni", value: d.budget.deaths, side: "budget", f: "deaths" },
+      { label: "Pullik — Shifo o‘rinlari (koyka)", value: d.paid.beds, side: "paid", f: "beds" },
+      { label: "Pullik — O‘rin-kun rejasi", value: d.paid.planDays, side: "paid", f: "planDays" },
+      { label: "Pullik — O‘rin-kun bajarilishi", value: d.paid.factDays, side: "paid", f: "factDays" },
+      { label: "Pullik — Davolangan bemorlar", value: d.paid.patients, side: "paid", f: "patients" },
+      { label: "Pullik — O‘lim soni", value: d.paid.deaths, side: "paid", f: "deaths" }
+    ];
+  }
+
+  function editDept(st, d) {
+    var specs = deptFields(d).map(function (f) { return { label: f.label, value: f.value == null ? "" : f.value, type: f._name ? "text" : "number", _meta: f }; });
+    var fields = specs.map(function (s) { return UI.FormField({ label: s.label, value: s.value, type: s.type }); });
+    UI.openDrawer({
+      title: t("common.edit"), desc: d.name, body: fields,
+      onSave: function () {
+        specs.forEach(function (s, i) {
+          var raw = fields[i]._input.value; var m = s._meta;
+          if (m._name) d.name = raw || d.name;
+          else d[m.side][m.f] = raw === "" ? 0 : num(raw);
+        });
+        navigate(current);
+      }
+    });
+  }
+
+  function addDept(st) {
+    var blank = { name: "Yangi bo‘lim", budget: { beds: 0, planDays: 0, factDays: 0, patients: 0, deaths: 0 }, paid: { beds: 0, planDays: 0, factDays: 0, patients: 0, deaths: 0 } };
+    st.departments.push(blank);
+    editDept(st, blank);
+  }
+
+  /* 8.4 Faoliyat (qo'shimcha) */
   function healthFacility() {
     var f = D.health.facility;
+    var wrap = h("div", { class: "mt-xl" });
     var totalRooms = f.rooms.reduce(function (a, b) { return a + b; }, 0);
     var totalEq = f.equipment.reduce(function (a, b) { return a + b; }, 0);
     var totalArea = f.areas.reduce(function (a, b) { return a + b; }, 0);
-    var wrap = h("div", { class: "mt-xl" });
     wrap.appendChild(h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
       UI.KpiCard({ label: t("h.warehouses"), value: Fmt.num(f.warehouses), icon: "box" }),
       UI.KpiCard({ label: t("h.rooms"), value: Fmt.num(totalRooms), icon: "grid" }),
       UI.KpiCard({ label: t("h.equipment"), value: Fmt.num(totalEq), icon: "zap" }),
       UI.KpiCard({ label: t("h.areas"), value: Fmt.num(totalArea, 2), icon: "map" })
     ]));
-    wrap.appendChild(h("div", { class: "section mt-xl" }, Charts.ChartCard({
-      title: t("h.areas"), type: "bar", barOpts: { horizontal: true },
-      data: { labels: f.areas.map(function (_, i) { return "№ " + (i + 1); }), datasets: [{ label: t("h.areas"), values: f.areas, color: "6" }] },
-      height: 320
-    })));
+    // editable form (csv arrays)
+    var refs = {};
+    var grid = h("div", { class: "form-grid" });
+    var wh = UI.FormField({ label: t("h.warehouses"), value: f.warehouses, type: "number" }); refs.wh = wh._input; grid.appendChild(wh);
+    var rooms = UI.FormField({ label: t("h.rooms") + " (vergul bilan)", value: f.rooms.join(", ") }); refs.rooms = rooms._input; grid.appendChild(rooms);
+    var eq = UI.FormField({ label: t("h.equipment") + " (vergul bilan)", value: f.equipment.join(", ") }); refs.eq = eq._input; grid.appendChild(eq);
+    var ar = UI.FormField({ label: t("h.areas") + " (vergul bilan)", value: f.areas.join(", ") }); refs.ar = ar._input; grid.appendChild(ar);
+    function csv(s) { return String(s).split(",").map(function (x) { return num(x); }).filter(function (x) { return !isNaN(x); }); }
+    var foot = h("div", { class: "form-section__foot" }, UI.Button({ label: t("common.save"), variant: "primary", icon: "check", onClick: function () {
+      f.warehouses = num(refs.wh.value); f.rooms = csv(refs.rooms.value); f.equipment = csv(refs.eq.value); f.areas = csv(refs.ar.value); navigate(current);
+    } }));
+    wrap.appendChild(h("div", { class: "section mt-xl" }, h("div", { class: "form-section" }, [
+      h("div", { class: "form-section__title", text: t("health.tab.facility") }),
+      h("div", { class: "form-section__body" }, grid), foot
+    ])));
     return wrap;
   }
 
+  /* 8.5 Laboratoriya */
   function healthLab() {
     var lab = D.health.lab;
-    var wrap = h("div", { class: "mt-xl" });
-    var items = lab.filter(function (r) { return r.key !== "lab.total"; });
-    wrap.appendChild(Charts.ChartCard({
-      title: t("lab.total"), subtitle: Fmt.num(lab[0].v), type: "bar", barOpts: { horizontal: true },
-      onEdit: function () {
-        openEdit(t("lab.total"), lab.map(function (r) { return { label: t(r.key), value: r.v, type: "number" }; }),
-          function (v) { lab.forEach(function (r, i) { r.v = num(v[i]); }); });
-      },
-      data: { labels: items.map(function (r) { return t(r.key); }), datasets: [{ label: t("common.count"), values: items.map(function (r) { return r.v; }), color: "2" }] },
-      height: 400,
-      table: {
-        sticky: true,
-        columns: [
-          { key: "key", label: t("health.metric"), sticky: "left", strong: true, render: function (r) { return t(r.key); } },
-          { key: "v", label: t("common.count"), align: "right", render: function (r) { return Fmt.num(r.v); } }
-        ],
-        rows: lab
-      }
-    }));
-    return wrap;
+    var model = {}; lab.forEach(function (r) { model[r.key] = r.v; });
+    var total = lab.filter(function (r) { return r.key !== "lab.total"; }).reduce(function (a, r) { return a + (model[r.key] || 0); }, 0);
+    var fields = lab.map(function (r) {
+      return r.key === "lab.total"
+        ? { key: r.key, label: t(r.key), computed: true, value: total }
+        : { key: r.key, label: t(r.key) };
+    });
+    var save = function () { lab.forEach(function (r) { if (r.key !== "lab.total") r.v = model[r.key] == null ? 0 : model[r.key]; }); };
+    return h("div", { class: "mt-xl" }, formSection(t("health.tab.lab"), fields, model, save));
   }
-
   /* ----------------------------- Sparklines ------------------------------ */
   function mountSparklines(root) {
     root.querySelectorAll(".kpi").forEach(function (card) {
