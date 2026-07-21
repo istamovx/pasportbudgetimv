@@ -149,6 +149,50 @@
     return card;
   }
 
+  /* ---- Custom Select (modern dropdown) ---- */
+  function normOpts(list) { return (list || []).map(function (o) { return typeof o === "string" ? { value: o, label: o } : o; }); }
+  function Select(opts) {
+    opts = opts || {};
+    var value = opts.value != null ? String(opts.value) : "";
+    var options = normOpts(opts.options);
+    var valueEl = h("span", { class: "select-ui__value" });
+    var control = h("button", { class: "select-ui__control", type: "button" }, [valueEl, h("span", { class: "select-ui__chev" }, icon("chevron-down"))]);
+    var panel = h("div", { class: "select-ui__panel", role: "listbox" });
+    var root = h("div", { class: "select-ui" + (opts.disabled ? " is-disabled" : "") }, [control, panel]);
+
+    function labelFor(v) { for (var i = 0; i < options.length; i++) if (String(options[i].value) === String(v)) return options[i].label; return ""; }
+    function renderValue() { var lbl = labelFor(value); valueEl.textContent = lbl || (opts.placeholder || "Tanlang"); valueEl.classList.toggle("is-placeholder", !lbl); }
+    function renderOptions() {
+      panel.innerHTML = "";
+      if (!options.length) { panel.appendChild(h("div", { class: "select-ui__empty", text: "—" })); return; }
+      options.forEach(function (o) {
+        var sel = String(o.value) === String(value);
+        var opt = h("div", { class: "select-ui__opt" + (sel ? " is-sel" : ""), role: "option", dataset: { value: o.value } },
+          [h("span", { class: "select-ui__opt-label", text: o.label }), sel ? icon("check", "select-ui__check") : null]);
+        opt.addEventListener("click", function (e) { e.stopPropagation(); setValue(o.value); close(); if (opts.onChange) opts.onChange(value); });
+        panel.appendChild(opt);
+      });
+    }
+    function setValue(v) { value = String(v); renderValue(); renderOptions(); }
+    function open() {
+      if (opts.disabled) return;
+      // close any other open selects
+      document.querySelectorAll(".select-ui.is-open").forEach(function (s) { if (s !== root) s.classList.remove("is-open", "is-up"); });
+      var r = control.getBoundingClientRect();
+      root.classList.toggle("is-up", (window.innerHeight - r.bottom) < 280 && r.top > 280);
+      root.classList.add("is-open");
+      var selEl = panel.querySelector(".is-sel"); if (selEl) selEl.scrollIntoView({ block: "nearest" });
+    }
+    function close() { root.classList.remove("is-open", "is-up"); }
+    control.addEventListener("click", function (e) { e.stopPropagation(); root.classList.contains("is-open") ? close() : open(); });
+    document.addEventListener("click", function (e) { if (!root.contains(e.target)) close(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+    renderValue(); renderOptions();
+    Object.defineProperty(root, "value", { get: function () { return value; }, set: function (v) { setValue(v); } });
+    root._setOptions = function (newOpts, val) { options = normOpts(newOpts); value = val != null ? String(val) : ""; renderValue(); renderOptions(); };
+    return root;
+  }
+
   /* ---- FormField ---- */
   function FormField(opts) {
     opts = opts || {};
@@ -160,18 +204,7 @@
 
     var input;
     if (opts.type === "select") {
-      input = h("select", {
-        class: "select", id: id, disabled: opts.disabled, name: opts.name || "",
-        onChange: opts.onChange ? function (e) { opts.onChange(e.target.value); } : null
-      });
-      if (opts.placeholder) input.appendChild(h("option", { value: "", disabled: "", selected: opts.value ? null : "" }, opts.placeholder));
-      (opts.options || []).forEach(function (o) {
-        var ov = typeof o === "string" ? o : o.value;
-        var ol = typeof o === "string" ? o : o.label;
-        var opt = h("option", { value: ov }, ol);
-        if (String(ov) === String(opts.value)) opt.selected = true;
-        input.appendChild(opt);
-      });
+      input = Select({ value: opts.value, options: opts.options, placeholder: opts.placeholder, disabled: opts.disabled, onChange: opts.onChange });
     } else {
       input = h("input", {
         class: "input" + (opts.computed ? " is-fx" : ""),
@@ -380,7 +413,7 @@
   global.UI = {
     h: h, append: append, icon: icon, ICONS: ICONS,
     EmptyState: EmptyState, Button: Button, StatusBadge: StatusBadge,
-    KpiCard: KpiCard, FormField: FormField, Tabs: Tabs, Segmented: Segmented,
+    KpiCard: KpiCard, FormField: FormField, Select: Select, Tabs: Tabs, Segmented: Segmented,
     DataTable: DataTable, openDrawer: openDrawer, closeDrawer: closeDrawer,
     openModal: openModal, closeModal: closeModal, editButton: editButton
   };
