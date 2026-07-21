@@ -517,9 +517,7 @@
       var tumanField = UI.FormField({ label: "* " + t("lf.tuman"), type: "select", value: j.tuman, placeholder: "Tanlang", options: (global.UZB_REGIONS[j.viloyat] || []) });
       refs.tuman = tumanField._input;
       function rebuildTuman(vil, keep) {
-        var sel = refs.tuman; sel.innerHTML = "";
-        var ph = document.createElement("option"); ph.value = ""; ph.textContent = "Tanlang"; ph.disabled = true; if (!keep) ph.selected = true; sel.appendChild(ph);
-        (global.UZB_REGIONS[vil] || []).forEach(function (tn) { var o = document.createElement("option"); o.value = tn; o.textContent = tn; if (tn === keep) o.selected = true; sel.appendChild(o); });
+        if (refs.tuman && refs.tuman._setOptions) refs.tuman._setOptions(global.UZB_REGIONS[vil] || [], keep);
       }
 
       var grid = h("div", { class: "form-grid" }, [
@@ -782,18 +780,36 @@
         h("div", { class: "progress" }, h("div", { class: "progress__bar", style: "width:" + pct + "%;background:" + color }))
       ]);
     });
+    var chartView = h("div", {}, [
+      h("div", { class: "stat-hero" }, [
+        h("div", { class: "stat-hero__icon" }, UI.icon("box")),
+        h("div", {}, [
+          h("div", { class: "stat-hero__value", text: Fmt.num(m.vehicles.length) }),
+          h("div", { class: "stat-hero__label", text: t("common.units") + " · " + t("material.transport").toLowerCase() })
+        ])
+      ]),
+      h("div", { class: "brk" }, rows)
+    ]);
+    var tableView = h("div", { class: "hidden" }, UI.DataTable({
+      columns: [
+        { key: "m", label: t("material.model"), strong: true },
+        { key: "c", label: t("common.count"), align: "right", render: function (r) { return Fmt.num(r.c); } },
+        { key: "p", label: t("common.percent"), align: "right", render: function (r) { return Fmt.percent(r.p, 0); } }
+      ],
+      rows: modelLabels.map(function (name) { return { m: name, c: byModel[name], p: Math.round(byModel[name] / total * 100) }; }),
+      foot: [{ content: t("common.total") }, { content: Fmt.num(m.vehicles.length), align: "right" }, { content: "100%", align: "right" }]
+    }));
+    var toggle = UI.Segmented({
+      value: "chart",
+      items: [{ id: "chart", label: t("common.chart_view"), icon: "chart" }, { id: "table", label: t("common.table_view"), icon: "table" }],
+      onChange: function (v) { chartView.classList.toggle("hidden", v !== "chart"); tableView.classList.toggle("hidden", v !== "table"); }
+    });
     return h("div", { class: "card" }, [
-      cardHead("material.transport", {}),
-      h("div", { class: "card__body" }, [
-        h("div", { class: "stat-hero" }, [
-          h("div", { class: "stat-hero__icon" }, UI.icon("box")),
-          h("div", {}, [
-            h("div", { class: "stat-hero__value", text: Fmt.num(m.vehicles.length) }),
-            h("div", { class: "stat-hero__label", text: t("common.units") + " · " + t("material.transport").toLowerCase() })
-          ])
-        ]),
-        h("div", { class: "brk" }, rows)
-      ])
+      h("div", { class: "card__head" }, [
+        h("div", {}, h("div", { class: "card__title", text: t("material.transport") })),
+        h("div", { class: "card__head-actions" }, toggle)
+      ]),
+      h("div", { class: "card__body" }, [chartView, tableView])
     ]);
   }
 
@@ -1271,10 +1287,12 @@
 
     // Header
     var header = h("header", { class: "header" }, [
-      h("button", { class: "hamburger", type: "button", "aria-label": "Menu", onClick: openMobileSidebar }, UI.icon("menu")),
-      h("div", { class: "header__title", id: "header-title", text: t("nav.general") }),
-      h("div", { class: "header__spacer" }),
-      h("div", { class: "header__actions" }, [themeToggle(), profile()])
+      h("div", { class: "header__inner" }, [
+        h("button", { class: "hamburger", type: "button", "aria-label": "Menu", onClick: openMobileSidebar }, UI.icon("menu")),
+        h("div", { class: "header__title", id: "header-title", text: t("nav.general") }),
+        h("div", { class: "header__spacer" }),
+        h("div", { class: "header__actions" }, [themeToggle(), profile()])
+      ])
     ]);
 
     mainEl = h("main", { class: "main", id: "main" });
