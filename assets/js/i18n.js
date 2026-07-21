@@ -109,6 +109,11 @@
       /* Common */
       "common.actions": "Amallar",
       "common.edit": "Tahrirlash",
+      "common.delete": "O‘chirish",
+      "common.search": "Qidirish",
+      "common.not_found": "Hech narsa topilmadi",
+      "org.select": "Tashkilotni tanlang",
+      "org.search_ph": "Tashkilotni qidirish (nom yoki STIR)...",
       "common.save": "Saqlash",
       "common.cancel": "Bekor qilish",
       "common.close": "Yopish",

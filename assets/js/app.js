@@ -424,11 +424,28 @@
       ]),
       h("div", { class: "bld-card__actions" }, [
         UI.Button({ icon: "edit", variant: "secondary", size: "sm", title: t("common.edit"), onClick: function () { openBuildingEdit(b); } }),
+        UI.Button({ icon: "trash", variant: "secondary", size: "sm", title: t("common.delete"), onClick: function () { confirmDeleteBuilding(i); } }),
         UI.Button({ label: t("loc.enter_building"), variant: "primary", icon: "chevron-right", onClick: function () {
           locState = { mode: "wizard", bIndex: i, step: "joylashuv" }; navigate(current);
         } })
       ])
     ]);
+  }
+
+  function confirmDeleteBuilding(i) {
+    var b = D.location.buildings[i];
+    UI.openModal({
+      title: t("common.delete") + "?", size: "sm",
+      body: h("p", { style: "color:var(--text-secondary)", text: "“" + b.name + "” binosini o‘chirmoqchimisiz? Bu amalni bekor qilib bo‘lmaydi." }),
+      foot: [
+        UI.Button({ label: t("common.cancel"), variant: "secondary", onClick: function () { UI.closeModal(); } }),
+        UI.Button({ label: t("common.delete"), variant: "danger", icon: "trash", onClick: function () {
+          D.location.buildings.splice(i, 1);
+          D.location.buildings.forEach(function (x, idx) { x.no = idx + 1; });
+          UI.closeModal(); navigate(current);
+        } })
+      ]
+    });
   }
 
   function openBuildingEdit(b) {
@@ -489,21 +506,36 @@
     if (step === "joylashuv") {
       var j = b.joylashuv || (b.joylashuv = { address: "", geo: "", lat: 0, lng: 0, fenceType: "", distanceKm: 0, viloyat: b.city, tuman: b.district, fullAddress: "" });
       var refs = {};
+      var GEO_DIRS = ["Markaz", "Shimol", "Shimoli-sharq", "Sharq", "Janubi-sharq", "Janub", "Janubi-g‘arb", "G‘arb", "Shimoli-g‘arb"];
+      var FENCE_TYPES = ["Rabitssa to‘ri (to‘r panjara)", "G‘isht devor", "Beton devor", "Metall panjara", "Yog‘och to‘siq", "O‘ralmagan"];
+      var vloyatlar = global.UZB_VILOYATLAR || [];
       function fld(key, label, val, opts) { var f = UI.FormField(Object.assign({ label: label, value: val == null ? "" : val }, opts || {})); refs[key] = f._input; return f; }
+
+      var viloyatField = UI.FormField({ label: "* " + t("lf.viloyat"), type: "select", value: j.viloyat, placeholder: "Tanlang", options: vloyatlar,
+        onChange: function (v) { rebuildTuman(v, null); } });
+      refs.viloyat = viloyatField._input;
+      var tumanField = UI.FormField({ label: "* " + t("lf.tuman"), type: "select", value: j.tuman, placeholder: "Tanlang", options: (global.UZB_REGIONS[j.viloyat] || []) });
+      refs.tuman = tumanField._input;
+      function rebuildTuman(vil, keep) {
+        var sel = refs.tuman; sel.innerHTML = "";
+        var ph = document.createElement("option"); ph.value = ""; ph.textContent = "Tanlang"; ph.disabled = true; if (!keep) ph.selected = true; sel.appendChild(ph);
+        (global.UZB_REGIONS[vil] || []).forEach(function (tn) { var o = document.createElement("option"); o.value = tn; o.textContent = tn; if (tn === keep) o.selected = true; sel.appendChild(o); });
+      }
+
       var grid = h("div", { class: "form-grid" }, [
-        fld("address", "* " + t("lf.address"), j.address),
-        fld("geo", "* " + t("lf.geo"), j.geo),
+        fld("address", "* " + t("lf.address"), j.address, { placeholder: "Ko‘cha, uy raqami" }),
+        fld("geo", "* " + t("lf.geo"), j.geo, { type: "select", placeholder: "Tanlang", options: GEO_DIRS }),
         h("div", { class: "field" }, [
           h("label", { class: "field__label", text: t("lf.coords") }),
           h("div", { class: "flex gap-md" }, [
-            (function () { var f = UI.FormField({ label: "", value: j.lat, type: "number" }); refs.lat = f._input; f.querySelector(".field__label").remove(); return f; })(),
-            (function () { var f = UI.FormField({ label: "", value: j.lng, type: "number" }); refs.lng = f._input; f.querySelector(".field__label").remove(); return f; })()
+            (function () { var f = UI.FormField({ label: "", value: j.lat, type: "number", placeholder: "Kenglik" }); refs.lat = f._input; f.querySelector(".field__label").remove(); return f; })(),
+            (function () { var f = UI.FormField({ label: "", value: j.lng, type: "number", placeholder: "Uzunlik" }); refs.lng = f._input; f.querySelector(".field__label").remove(); return f; })()
           ])
         ]),
-        fld("fenceType", "* " + t("lf.fence"), j.fenceType),
-        fld("distanceKm", "* " + t("lf.distance"), j.distanceKm, { type: "number" }),
-        fld("viloyat", "* " + t("lf.viloyat"), j.viloyat),
-        fld("tuman", "* " + t("lf.tuman"), j.tuman)
+        fld("fenceType", "* " + t("lf.fence"), j.fenceType, { type: "select", placeholder: "Tanlang", options: FENCE_TYPES }),
+        fld("distanceKm", "* " + t("lf.distance"), j.distanceKm, { type: "number", placeholder: "0" }),
+        viloyatField,
+        tumanField
       ]);
       var full = h("div", { class: "wizard__full" }, [
         h("div", { class: "info-tile__label", text: t("lf.full_address") }),
@@ -512,6 +544,7 @@
       var foot = h("div", { class: "form-section__foot" }, UI.Button({ label: t("loc.next"), variant: "primary", icon: "chevron-right", onClick: function () {
         j.address = refs.address.value; j.geo = refs.geo.value; j.lat = num(refs.lat.value); j.lng = num(refs.lng.value);
         j.fenceType = refs.fenceType.value; j.distanceKm = num(refs.distanceKm.value); j.viloyat = refs.viloyat.value; j.tuman = refs.tuman.value;
+        j.fullAddress = [j.viloyat, j.tuman, j.address].filter(Boolean).join(", ");
         locState.step = "bino"; navigate(current);
       } }));
       return h("div", { class: "form-section" }, [
@@ -565,12 +598,75 @@
       ]);
     }
 
-    // qavatlar / xonalar / ijara / polygon -> empty step
+    if (step === "polygon") {
+      var mapEl = h("div", { class: "map map--draw", id: "poly-map" });
+      var areaOut = h("span", { class: "poly-area__val mono", text: b.polygon && b.polygon.area ? Fmt.num(b.polygon.area, 0) + " m²" : "—" });
+      var ptsOut = h("span", { class: "poly-area__pts", text: (b.polygon && b.polygon.points ? b.polygon.points.length : 0) + " nuqta" });
+      var toolbar = h("div", { class: "poly-toolbar" }, [
+        h("div", { class: "poly-hint", text: "Xaritaga bosib bino maydoni burchaklarini belgilang" }),
+        h("div", { class: "poly-area" }, [h("span", { class: "poly-area__label", text: "Maydon:" }), areaOut, h("span", { class: "poly-area__dot", text: "·" }), ptsOut]),
+        h("div", { class: "flex gap-md" }, [
+          UI.Button({ label: "Tozalash", variant: "secondary", icon: "close", onClick: function () { if (window._polyReset) window._polyReset(); } }),
+          UI.Button({ label: t("common.save"), variant: "primary", icon: "check", onClick: function () { if (window._polySave) window._polySave(); } })
+        ])
+      ]);
+      requestAnimationFrame(function () { initPolygonMap(mapEl, b, areaOut, ptsOut); });
+      return h("div", { class: "form-section" }, [
+        h("div", { class: "form-section__title", text: t("step.polygon") }),
+        h("div", { class: "form-section__body" }, [toolbar, mapEl]),
+        stepNav(prev, next)
+      ]);
+    }
+
+    // qavatlar / xonalar / ijara -> empty step
     return h("div", { class: "form-section" }, [
       h("div", { class: "form-section__title", text: t("step." + step) }),
-      h("div", { class: "form-section__body" }, UI.EmptyState({ icon: step === "polygon" ? "map" : "grid" })),
+      h("div", { class: "form-section__body" }, UI.EmptyState({ icon: "grid" })),
       stepNav(prev, next)
     ]);
+  }
+
+  /* Polygon drawing map: click to add vertices; computes area (m²) */
+  function polygonAreaM2(points, latRef) {
+    if (points.length < 3) return 0;
+    var mPerDegLat = 111320, mPerDegLng = 111320 * Math.cos(latRef * Math.PI / 180);
+    var xy = points.map(function (p) { return [p[1] * mPerDegLng, p[0] * mPerDegLat]; });
+    var a = 0;
+    for (var i = 0; i < xy.length; i++) { var j2 = (i + 1) % xy.length; a += xy[i][0] * xy[j2][1] - xy[j2][0] * xy[i][1]; }
+    return Math.abs(a / 2);
+  }
+  function initPolygonMap(el, b, areaOut, ptsOut) {
+    if (!global.L || !document.body.contains(el)) return;
+    if (locationMap) { try { locationMap.remove(); } catch (e) {} locationMap = null; }
+    el.classList.toggle("map--dark", document.documentElement.getAttribute("data-theme") === "dark");
+    var center = [b.lat || 41.311, b.lng || 69.279];
+    var map = global.L.map(el, { scrollWheelZoom: true }).setView(center, 17);
+    global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 20, attribution: "© OpenStreetMap" }).addTo(map);
+    locationMap = map;
+    var pts = (b.polygon && b.polygon.points ? b.polygon.points.slice() : []);
+    var poly = null, markers = [];
+    var brand = Charts.cssVar("--utility-brand-500") || "#155eef";
+    function redraw() {
+      if (poly) { map.removeLayer(poly); poly = null; }
+      markers.forEach(function (m) { map.removeLayer(m); }); markers = [];
+      pts.forEach(function (p, i) {
+        var mk = global.L.circleMarker(p, { radius: 5, color: brand, fillColor: brand, fillOpacity: 1, weight: 2 }).addTo(map);
+        markers.push(mk);
+      });
+      if (pts.length >= 2) poly = global.L.polygon(pts, { color: brand, weight: 2, fillColor: brand, fillOpacity: 0.15 }).addTo(map);
+      var area = polygonAreaM2(pts, center[0]);
+      areaOut.textContent = pts.length >= 3 ? Fmt.num(area, 0) + " m²" : "—";
+      ptsOut.textContent = pts.length + " nuqta";
+    }
+    map.on("click", function (e) { pts.push([e.latlng.lat, e.latlng.lng]); redraw(); });
+    window._polyReset = function () { pts = []; redraw(); };
+    window._polySave = function () {
+      b.polygon = { points: pts.slice(), area: polygonAreaM2(pts, center[0]) };
+      UI.openDrawer && null; // no-op
+      locState.step = "polygon"; navigate(current);
+    };
+    if (pts.length) redraw();
+    setTimeout(function () { try { map.invalidateSize(); } catch (e) {} }, 200);
   }
 
   function wizardForm(title, fields, model, prev, next) {
@@ -1170,6 +1266,89 @@
     ]);
   }
 
+  /* ---- Organization picker (admin: choose organization) ---- */
+  var _mockOrgs = null;
+  function getMockOrgs() {
+    if (_mockOrgs) return _mockOrgs;
+    var types = [
+      "Umumta’lim maktabi (I guruh) (Kontingent 1601 va undan ortiq)",
+      "Umumta’lim maktabi (IV guruh) (Kontingent 400 nafargacha)",
+      "Umumta’lim maktabi (III guruh) (Kontingent 401–880 nafargacha)",
+      "Umumiy turdagi davlat maktabgacha ta’lim tashkiloti",
+      "Oilaviy poliklinikalar",
+      "Ixtisoslashtirilgan markazlar, shifoxonalar va koykali dispanserlar",
+      "Tuman markaziy shifoxonasi"
+    ];
+    var list = [{ name: "“" + t("app.org").toUpperCase() + "” DAVLAT MUASSASASI", stir: "201190732", type: types[5], current: true }];
+    for (var i = 1; i <= 239; i++) {
+      var n = 100 + i;
+      var stir = "2" + String(100000000 + (i * 7919) % 899999999);
+      list.push({ name: "“" + n + "-SONLI UMUMIY O‘RTA TA’LIM MAKTABI” DAVLAT MUASSASASI", stir: stir.slice(0, 9), type: types[i % types.length] });
+    }
+    _mockOrgs = list;
+    return list;
+  }
+
+  function orgCard(o) {
+    return h("button", { class: "org-card" + (o.current ? " is-current" : ""), type: "button", title: o.name, onClick: function () {
+      UI.closeModal();
+    } }, [
+      h("div", { class: "org-card__head" }, [
+        h("div", { class: "org-card__icon" }, UI.icon("building")),
+        o.current ? UI.StatusBadge("", { variant: "success", label: "Joriy", dotless: true }) : h("span")
+      ]),
+      h("div", { class: "org-card__name", text: o.name }),
+      h("div", { class: "org-card__stir" }, ["STIR: ", h("span", { class: "mono", text: o.stir })]),
+      h("div", { class: "org-card__type", text: o.type })
+    ]);
+  }
+
+  function openOrgPicker() {
+    var orgs = getMockOrgs();
+    var state = { q: "", page: 1, per: 20 };
+    var results = h("div", { class: "org-results" });
+
+    var searchInput = h("input", { class: "input org-search__input", type: "text", placeholder: t("org.search_ph") });
+    searchInput.addEventListener("input", function () { state.q = searchInput.value.trim().toLowerCase(); state.page = 1; renderResults(); });
+    var searchBar = h("div", { class: "org-search" }, [h("span", { class: "org-search__icon" }, UI.icon("search")), searchInput]);
+
+    function filtered() {
+      if (!state.q) return orgs;
+      return orgs.filter(function (o) { return o.name.toLowerCase().indexOf(state.q) >= 0 || o.stir.indexOf(state.q) >= 0; });
+    }
+    function pager(total, pages) {
+      var wrap = h("div", { class: "org-pager" });
+      var nav = h("div", { class: "org-pager__nav" });
+      function btn(label, page, opts) {
+        opts = opts || {};
+        return h("button", { class: "org-page" + (opts.active ? " is-active" : "") + (opts.dis ? " is-dis" : ""), type: "button", disabled: opts.dis,
+          onClick: function () { if (!opts.dis && page) { state.page = page; renderResults(); } } }, label);
+      }
+      nav.appendChild(btn(UI.icon("chevron-left"), state.page - 1, { dis: state.page <= 1 }));
+      var win = [];
+      for (var p = 1; p <= pages; p++) { if (p === 1 || p === pages || Math.abs(p - state.page) <= 1) win.push(p); else if (win[win.length - 1] !== "…") win.push("…"); }
+      win.forEach(function (p) { nav.appendChild(p === "…" ? h("span", { class: "org-page__ell", text: "…" }) : btn(String(p), p, { active: p === state.page })); });
+      nav.appendChild(btn(UI.icon("chevron-right"), state.page + 1, { dis: state.page >= pages }));
+      wrap.appendChild(h("div", { class: "org-pager__info", text: Fmt.num(total) + " ta tashkilot" }));
+      wrap.appendChild(nav);
+      return wrap;
+    }
+    function renderResults() {
+      results.innerHTML = "";
+      var list = filtered();
+      var total = list.length, pages = Math.max(1, Math.ceil(total / state.per));
+      if (state.page > pages) state.page = pages;
+      var start = (state.page - 1) * state.per;
+      var items = list.slice(start, start + state.per);
+      if (!items.length) { results.appendChild(UI.EmptyState({ icon: "search", title: t("common.not_found") })); return; }
+      results.appendChild(h("div", { class: "org-grid" }, items.map(orgCard)));
+      results.appendChild(pager(total, pages));
+    }
+
+    UI.openModal({ title: t("org.select"), size: "full", body: [searchBar, results] });
+    renderResults();
+  }
+
   function profile() {
     var u = D.user, stir = "201190732";
     var trigger = h("button", { class: "profile", type: "button", title: u.name }, [
@@ -1196,7 +1375,7 @@
         ])
       ]),
       h("div", { class: "profile-panel__actions" }, [
-        UI.Button({ label: "Tashkilot tanlash", variant: "secondary", icon: "switch", onClick: function () { panel.classList.remove("is-open"); } }),
+        UI.Button({ label: "Tashkilot tanlash", variant: "secondary", icon: "switch", onClick: function () { panel.classList.remove("is-open"); openOrgPicker(); } }),
         h("button", { class: "btn btn--danger-ghost", type: "button", onClick: function () { window.location.href = "login.html"; } }, [
           UI.icon("logout"), h("span", { text: "Tizimdan chiqish" })
         ])
