@@ -29,6 +29,7 @@
       "theme.toggle": "Mavzuni almashtirish",
 
       /* Nav / sections */
+      "nav.menu": "Menyu",
       "nav.general": "Umumiy ma’lumot",
       "nav.location": "Joylashuv",
       "nav.staff": "Kadrlar bilan ishlash",
@@ -207,6 +208,7 @@
     "app.org": "Тошкент тиббиёт муассасаси", "app.org_short": "ТТМ #7",
     "lang.uz-latn": "O‘zbekcha (lotin)", "lang.uz-cyrl": "Ўзбекча (кирилл)", "lang.ru": "Русский",
     "lang.label": "Тил", "theme.label": "Мавзу", "theme.light": "Ёруғ", "theme.dark": "Тунги", "theme.toggle": "Мавзуни алмаштириш",
+    "nav.menu": "Меню",
     "nav.general": "Умумий маълумот", "nav.location": "Жойлашув", "nav.staff": "Кадрлар билан ишлаш",
     "nav.material": "Моддий техник база", "nav.utilities": "Коммунал харажатлар", "nav.debts": "Мавжуд қарзлар",
     "nav.mib": "Тиббий суғурта (МИБ)", "nav.health": "Соғлиқни сақлаш",
@@ -260,6 +262,7 @@
     "app.org": "Ташкентское медицинское учреждение", "app.org_short": "ТМУ #7",
     "lang.uz-latn": "O‘zbekcha (lotin)", "lang.uz-cyrl": "Ўзбекча (кирилл)", "lang.ru": "Русский",
     "lang.label": "Язык", "theme.label": "Тема", "theme.light": "Светлая", "theme.dark": "Тёмная", "theme.toggle": "Переключить тему",
+    "nav.menu": "Меню",
     "nav.general": "Общая информация", "nav.location": "Расположение", "nav.staff": "Работа с кадрами",
     "nav.material": "Материально-техническая база", "nav.utilities": "Коммунальные расходы", "nav.debts": "Текущие задолженности",
     "nav.mib": "Медицинское страхование (МСБ)", "nav.health": "Здравоохранение",
