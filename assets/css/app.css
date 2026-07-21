@@ -514,3 +514,19 @@
 .org-page.is-dis { opacity: 0.45; cursor: not-allowed; }
 .org-page .icon { width: 16px; height: 16px; }
 .org-page__ell { color: var(--text-quaternary); padding: 0 var(--spacing-xs); }
+
+/* ==========================================================================
+   Stat hero + breakdown bars (e.g. transport summary)
+   ========================================================================== */
+.stat-hero { display: flex; align-items: center; gap: var(--spacing-lg); padding-bottom: var(--spacing-xl); margin-bottom: var(--spacing-xl); border-bottom: 1px solid var(--border-secondary); }
+.stat-hero__icon { width: 52px; height: 52px; flex: none; border-radius: var(--radius-lg); display: grid; place-items: center; background: var(--utility-brand-50); color: var(--utility-brand-600); border: 1px solid var(--utility-brand-100); }
+.stat-hero__icon .icon { width: 26px; height: 26px; }
+.stat-hero__value { font-size: var(--display-sm); line-height: 1; font-weight: var(--font-weight-bold); color: var(--text-primary); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.stat-hero__label { font-size: var(--text-sm); color: var(--text-tertiary); margin-top: 4px; }
+.brk { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.brk__row { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.brk__top { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
+.brk__name { display: inline-flex; align-items: center; gap: var(--spacing-md); font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-secondary); min-width: 0; }
+.brk__dot { width: 10px; height: 10px; border-radius: var(--radius-full); flex: none; }
+.brk__count { font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--font-weight-semibold); white-space: nowrap; }
+.brk__pct { color: var(--text-tertiary); font-weight: var(--font-weight-regular); }

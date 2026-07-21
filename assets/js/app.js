@@ -768,6 +768,35 @@
   }
 
   /* --- Material --- */
+  function transportSummaryCard(m, modelLabels, byModel) {
+    var total = m.vehicles.length || 1;
+    var palette = ["--chart-1", "--chart-2", "--chart-3", "--chart-4", "--chart-5", "--chart-6"];
+    var rows = modelLabels.map(function (name, i) {
+      var count = byModel[name], pct = Math.round(count / total * 100);
+      var color = "var(" + palette[i % palette.length] + ")";
+      return h("div", { class: "brk__row" }, [
+        h("div", { class: "brk__top" }, [
+          h("span", { class: "brk__name" }, [h("span", { class: "brk__dot", style: "background:" + color }), h("span", { text: name })]),
+          h("span", { class: "brk__count" }, [h("b", { text: String(count) }), h("span", { class: "brk__pct", text: " · " + pct + "%" })])
+        ]),
+        h("div", { class: "progress" }, h("div", { class: "progress__bar", style: "width:" + pct + "%;background:" + color }))
+      ]);
+    });
+    return h("div", { class: "card" }, [
+      cardHead("material.transport", {}),
+      h("div", { class: "card__body" }, [
+        h("div", { class: "stat-hero" }, [
+          h("div", { class: "stat-hero__icon" }, UI.icon("box")),
+          h("div", {}, [
+            h("div", { class: "stat-hero__value", text: Fmt.num(m.vehicles.length) }),
+            h("div", { class: "stat-hero__label", text: t("common.units") + " · " + t("material.transport").toLowerCase() })
+          ])
+        ]),
+        h("div", { class: "brk" }, rows)
+      ])
+    ]);
+  }
+
   function renderMaterial() {
     var m = D.material;
     var page = h("div", { class: "page" });
@@ -784,7 +813,7 @@
         data: { labels: modelLabels, values: modelValues },
         height: 320
       }),
-      UI.KpiCard({ label: t("material.transport"), value: Fmt.num(m.vehicles.length) + " " + t("common.units"), icon: "box" })
+      transportSummaryCard(m, modelLabels, byModel)
     ])));
 
     page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [

@@ -40,12 +40,13 @@
           labels: { color: text, font: tickFont, usePointStyle: true, pointStyle: "circle", boxWidth: 8, padding: 16 }
         },
         tooltip: {
-          backgroundColor: cssVar("--bg-primary-solid") || "#0c111d",
-          titleColor: cssVar("--text-primary-on-brand") || "#fff",
-          bodyColor: cssVar("--text-secondary-on-brand") || "#e9eaeb",
-          borderColor: cssVar("--border-primary"), borderWidth: 1, padding: 12,
+          /* Always a dark tooltip (readable in both light and dark themes) */
+          backgroundColor: cssVar("--bg-overlay") || "#0c111d",
+          titleColor: "#ffffff",
+          bodyColor: "rgba(255,255,255,0.88)",
+          borderColor: "rgba(255,255,255,0.10)", borderWidth: 1, padding: 12,
           cornerRadius: 8, titleFont: { family: tickFont.family, weight: "600", size: 13 },
-          bodyFont: tickFont, usePointStyle: true,
+          bodyFont: tickFont, usePointStyle: true, boxPadding: 4,
           callbacks: {}
         }
       },
