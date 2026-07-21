@@ -91,6 +91,15 @@
     return b;
   }
 
+  /* ---- Edit button (pencil) — used on every editable block ---- */
+  function editButton(onClick, label) {
+    return h("button", {
+      class: "btn btn--secondary btn--sm", type: "button",
+      title: label || t("common.edit"), "aria-label": label || t("common.edit"),
+      onClick: onClick
+    }, [icon("edit"), h("span", { class: "btn__label-md", text: label || t("common.edit") })]);
+  }
+
   /* ---- StatusBadge ---- */
   var STATUS_MAP = {
     new: { cls: "brand", key: "status.new" },
@@ -325,6 +334,7 @@
     h: h, append: append, icon: icon, ICONS: ICONS,
     EmptyState: EmptyState, Button: Button, StatusBadge: StatusBadge,
     KpiCard: KpiCard, FormField: FormField, Tabs: Tabs, Segmented: Segmented,
-    DataTable: DataTable, openDrawer: openDrawer, closeDrawer: closeDrawer
+    DataTable: DataTable, openDrawer: openDrawer, closeDrawer: closeDrawer,
+    editButton: editButton
   };
 })(window);

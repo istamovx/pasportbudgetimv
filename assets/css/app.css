@@ -151,6 +151,7 @@
   padding: var(--spacing-xl) var(--spacing-2xl);
   border-bottom: 1px solid var(--border-secondary);
 }
+.card__head-actions { display: flex; align-items: center; gap: var(--spacing-md); flex: none; }
 .card__title { font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--text-md); }
 .card__subtitle { color: var(--text-tertiary); font-size: var(--text-xs); margin-top: 2px; }
 .card__body { padding: var(--spacing-2xl); }

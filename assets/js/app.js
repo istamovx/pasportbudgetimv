@@ -22,6 +22,61 @@
     return v;
   }
   function money(v) { return Fmt.currency(v, 0); }
+  function num(v) { v = parseFloat(String(v).replace(/[^\d.\-]/g, "")); return isNaN(v) ? 0 : v; }
+  function setLoc(item, val) {
+    var lang = I18N.current;
+    if (lang === "ru") item.ru = val; else if (lang === "uz-cyrl") item.cyr = val; else item.value = val;
+    if (item.i18nValue) { item.i18nValue = false; item.value = val; }
+  }
+
+  /* ---- Editable-card helpers (organization role: every block is editable) ---- */
+  function cardHead(titleKey, opts) {
+    opts = opts || {};
+    var left = h("div", {}, [
+      h("div", { class: "card__title", text: typeof titleKey === "string" ? t(titleKey) : titleKey }),
+      opts.subtitle ? h("div", { class: "card__subtitle", text: opts.subtitle }) : null
+    ]);
+    var actions = h("div", { class: "card__head-actions" });
+    if (opts.extra) actions.appendChild(opts.extra);
+    if (opts.onEdit) actions.appendChild(UI.editButton(opts.onEdit));
+    return h("div", { class: "card__head" }, [left, actions]);
+  }
+
+  /* specs: [{label, value, type, disabled, computed, hint}] -> apply(values[]) */
+  function openEdit(desc, specs, apply) {
+    var fields = specs.map(function (s) {
+      return UI.FormField({
+        label: s.label, value: s.value != null ? s.value : "", type: s.type || "text",
+        disabled: s.disabled, computed: s.computed, hint: s.hint
+      });
+    });
+    UI.openDrawer({
+      title: t("common.edit"), desc: desc, body: fields,
+      onSave: function () {
+        var vals = fields.map(function (f) { return f._input ? f._input.value : null; });
+        if (apply) apply(vals);
+        navigate(current);
+      }
+    });
+  }
+
+  /* Edit a list of {key, budget, paid} rows (budget/paid pair per row) */
+  function editBudgetPaid(descKey, rows) {
+    var specs = [];
+    rows.forEach(function (r) {
+      specs.push({ label: t(r.key) + " — " + t("mib.budget"), value: r.budget, type: "number" });
+      specs.push({ label: t(r.key) + " — " + t("mib.paid"), value: r.paid, type: "number" });
+    });
+    openEdit(t(descKey), specs, function (vals) {
+      var i = 0; rows.forEach(function (r) { r.budget = num(vals[i++]); r.paid = num(vals[i++]); });
+    });
+  }
+
+  /* Edit a list of {key, value} rows (single numeric per row) */
+  function editKeyValues(descKey, rows) {
+    openEdit(t(descKey), rows.map(function (r) { return { label: t(r.key), value: r.value, type: "number" }; }),
+      function (vals) { rows.forEach(function (r, i) { r.value = num(vals[i]); }); });
+  }
 
   /* ----------------------------- Sections ------------------------------- */
   var SECTIONS = {
@@ -61,9 +116,7 @@
   function renderGeneral() {
     var g = D.general;
     var page = h("div", { class: "page" });
-    page.appendChild(pageHead("page.general.title", "page.general.desc", [
-      UI.Button({ label: t("common.edit"), variant: "secondary", icon: "edit", onClick: openGeneralEdit })
-    ]));
+    page.appendChild(pageHead("page.general.title", "page.general.desc"));
 
     // KPIs
     var kpis = h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
@@ -78,10 +131,10 @@
     ]);
     page.appendChild(h("div", { class: "section" }, kpis));
 
-    // Key-value cards (equal columns)
+    // Key-value cards (equal columns) — each block editable
     var kvCols = h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
-      kvCard("general.basic", g.basic),
-      kvCard("general.contact", g.contact)
+      kvCard("general.basic", g.basic, function () { editKvRows("general.basic", g.basic); }),
+      kvCard("general.contact", g.contact, function () { editKvRows("general.contact", g.contact); })
     ]);
     page.appendChild(h("div", { class: "section" }, kvCols));
 
@@ -94,26 +147,26 @@
     return page;
   }
 
-  function kvCard(titleKey, rows) {
+  function kvCard(titleKey, rows, onEdit) {
     var kv = h("div", { class: "kv" });
     rows.forEach(function (r) {
       kv.appendChild(h("div", { class: "kv__key", text: t(r.key) }));
       kv.appendChild(h("div", { class: "kv__val", text: tv(r) }));
     });
     return h("div", { class: "card" }, [
-      h("div", { class: "card__head" }, h("div", { class: "card__title", text: t(titleKey) })),
+      cardHead(titleKey, { onEdit: onEdit }),
       h("div", { class: "card__body card__body--flush" }, kv)
     ]);
   }
 
-  function openGeneralEdit() {
-    var g = D.general;
-    var fields = g.basic.concat(g.contact).map(function (r) {
-      return UI.FormField({ label: t(r.key), value: tv(r), readonly: r.key === "general.f.inn" });
+  /* Edit key/value rows (text; INN stays read-only) */
+  function editKvRows(descKey, rows) {
+    var specs = rows.map(function (r) {
+      return { label: t(r.key), value: tv(r), disabled: r.key === "general.f.inn" };
     });
-    // computed field example
-    fields.push(UI.FormField({ label: t("general.kpi.vacant"), value: Fmt.num(g.kpi.vacant), computed: true, hint: t("general.kpi.staff_total") + " − " + t("general.kpi.occupied") }));
-    UI.openDrawer({ title: t("common.edit"), desc: t("page.general.desc"), body: fields });
+    openEdit(t(descKey), specs, function (vals) {
+      rows.forEach(function (r, i) { if (r.key !== "general.f.inn") setLoc(r, vals[i]); });
+    });
   }
 
   /* --- MIB / money movement cards (shared by General + MIB page) --- */
@@ -122,6 +175,7 @@
     return Charts.ChartCard({
       title: t("mib.movement"), subtitle: t("mib.budget") + " · " + t("mib.paid"),
       type: "bar", barOpts: { money: true },
+      onEdit: function () { editBudgetPaid("mib.movement", m); },
       data: {
         labels: m.map(function (r) { return t(r.key); }),
         datasets: [
@@ -137,6 +191,7 @@
     return Charts.ChartCard({
       title: t("mib.by_source"), subtitle: t("mib.income"),
       type: "bar", barOpts: { stacked: true, money: true },
+      onEdit: function () { editBudgetPaid("mib.by_source", s); },
       data: {
         labels: s.map(function (r) { return t(r.key); }),
         datasets: [
@@ -158,25 +213,38 @@
     // Real interactive map (Leaflet + OpenStreetMap)
     var mapEl = h("div", { class: "map", id: "org-map" });
     var mapCard = h("div", { class: "card" }, [
-      h("div", { class: "card__head" }, [
-        h("div", {}, [
-          h("div", { class: "card__title", text: t("general.f.address") }),
-          h("div", { class: "card__subtitle", text: loc(l.address) })
-        ]),
-        UI.StatusBadge("", { variant: "brand", label: l.lat.toFixed(4) + ", " + l.lng.toFixed(4), dotless: true })
-      ]),
+      cardHead(t("general.f.address"), {
+        subtitle: loc(l.address),
+        extra: UI.StatusBadge("", { variant: "brand", label: l.lat.toFixed(4) + ", " + l.lng.toFixed(4), dotless: true }),
+        onEdit: function () {
+          openEdit(t("nav.location"), [
+            { label: t("general.f.address"), value: loc(l.address) },
+            { label: "Latitude", value: l.lat, type: "number" },
+            { label: "Longitude", value: l.lng, type: "number" }
+          ], function (v) { setLoc(l.address, v[0]); l.lat = num(v[1]); l.lng = num(v[2]); });
+        }
+      }),
       h("div", { class: "card__body card__body--flush" }, mapEl)
     ]);
     page.appendChild(h("div", { class: "section" }, mapCard));
 
     var branchTable = h("div", { class: "card" }, [
-      h("div", { class: "card__head" }, h("div", { class: "card__title", text: t("nav.location") })),
+      cardHead("nav.location", { onEdit: function () { addBranch(l); } }),
       h("div", { class: "card__body card__body--flush" }, UI.DataTable({
         sticky: true,
         columns: [
           { key: "name", label: t("common.name"), sticky: "left", strong: true, render: function (r) { return loc(r); } },
           { key: "area", label: "m²", align: "right" },
-          { key: "staff", label: t("general.kpi.staff_total"), align: "right", render: function (r) { return Fmt.num(r.staff); } }
+          { key: "staff", label: t("general.kpi.staff_total"), align: "right", render: function (r) { return Fmt.num(r.staff); } },
+          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+            return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
+              openEdit(loc(r), [
+                { label: t("common.name"), value: loc(r) },
+                { label: "m²", value: r.area },
+                { label: t("general.kpi.staff_total"), value: r.staff, type: "number" }
+              ], function (v) { setLoc(r, v[0]); r.area = v[1]; r.staff = num(v[2]); });
+            } });
+          } }
         ],
         rows: l.branches
       }))
@@ -212,6 +280,14 @@
     setTimeout(function () { try { map.invalidateSize(); } catch (e) {} }, 200);
   }
 
+  function addBranch(l) {
+    openEdit(t("common.add"), [
+      { label: t("common.name"), value: "" },
+      { label: "m²", value: "" },
+      { label: t("general.kpi.staff_total"), value: 0, type: "number" }
+    ], function (v) { l.branches.push({ name: v[0], area: v[1], staff: num(v[2]) }); });
+  }
+
   /* --- Staff --- */
   function renderStaff() {
     var s = D.staff;
@@ -221,11 +297,13 @@
     page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
       Charts.ChartCard({
         title: t("staff.by_position"), type: "doughnut",
+        onEdit: function () { editKeyValues("staff.by_position", s.byPosition); },
         data: { labels: s.byPosition.map(function (r) { return t(r.key); }), values: s.byPosition.map(function (r) { return r.value; }) },
         height: 320
       }),
       Charts.ChartCard({
         title: t("staff.by_tarif"), type: "bar", barOpts: { horizontal: true },
+        onEdit: function () { editKeyValues("staff.by_tarif", s.byTarif); },
         data: { labels: s.byTarif.map(function (r) { return t(r.key); }), datasets: [{ label: t("common.count"), values: s.byTarif.map(function (r) { return r.value; }), color: "1" }] },
         height: 320
       })
@@ -233,6 +311,17 @@
 
     page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
       title: t("staff.compare"), type: "bar",
+      onEdit: function () {
+        var specs = [];
+        s.compare.forEach(function (r) {
+          specs.push({ label: t(r.key) + " — " + t("staff.col.staff"), value: r.staff, type: "number" });
+          specs.push({ label: t(r.key) + " — " + t("staff.col.occupied"), value: r.occupied, type: "number" });
+          specs.push({ label: t(r.key) + " — " + t("staff.col.vacant"), value: r.vacant, type: "number" });
+        });
+        openEdit(t("staff.compare"), specs, function (v) {
+          var i = 0; s.compare.forEach(function (r) { r.staff = num(v[i++]); r.occupied = num(v[i++]); r.vacant = num(v[i++]); });
+        });
+      },
       data: {
         labels: s.compare.map(function (r) { return t(r.key); }),
         datasets: [
@@ -265,18 +354,34 @@
     page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
       Charts.ChartCard({
         title: t("material.by_model"), subtitle: t("material.transport"), type: "pie",
+        onEdit: function () { editKeyValues("material.by_model", m.transport); },
         data: { labels: m.transport.map(function (r) { return t(r.key); }), values: m.transport.map(function (r) { return r.value; }) },
         height: 320
       }),
       h("div", { class: "card" }, [
-        h("div", { class: "card__head" }, h("div", { class: "card__title", text: t("material.transport") })),
+        cardHead("material.transport", { onEdit: function () {
+          openEdit(t("common.add"), [
+            { label: t("material.model"), value: "" },
+            { label: t("material.year"), value: "", type: "number" },
+            { label: t("material.plate"), value: "" }
+          ], function (v) { m.vehicles.push({ model: v[0], type: "veh.car", year: num(v[1]), plate: v[2] }); });
+        } }),
         h("div", { class: "card__body card__body--flush" }, UI.DataTable({
           sticky: true,
           columns: [
             { key: "model", label: t("material.model"), sticky: "left", strong: true },
             { key: "type", label: t("material.type"), render: function (r) { return UI.StatusBadge("", { variant: "brand", label: t(r.type), dotless: true }); } },
             { key: "year", label: t("material.year"), align: "right" },
-            { key: "plate", label: t("material.plate") }
+            { key: "plate", label: t("material.plate") },
+            { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+              return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
+                openEdit(r.model, [
+                  { label: t("material.model"), value: r.model },
+                  { label: t("material.year"), value: r.year, type: "number" },
+                  { label: t("material.plate"), value: r.plate }
+                ], function (v) { r.model = v[0]; r.year = num(v[1]); r.plate = v[2]; });
+              } });
+            } }
           ],
           rows: m.vehicles
         }))
@@ -294,6 +399,16 @@
     var total = u.rows.reduce(function (a, r) { return a + r.cost; }, 0);
     page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
       title: t("util.by_service"), type: "bar", barOpts: { horizontal: true, money: true },
+      onEdit: function () {
+        var specs = [];
+        u.rows.forEach(function (r) {
+          specs.push({ label: t(r.key) + " — " + t("util.consumption"), value: r.consumption });
+          specs.push({ label: t(r.key) + " — " + t("util.cost"), value: r.cost, type: "number" });
+        });
+        openEdit(t("util.by_service"), specs, function (v) {
+          var i = 0; u.rows.forEach(function (r) { r.consumption = v[i++]; r.cost = num(v[i++]); });
+        });
+      },
       data: { labels: u.rows.map(function (r) { return t(r.key); }), datasets: [{ label: t("util.cost"), values: u.rows.map(function (r) { return r.cost; }), color: "1" }] },
       height: 320,
       table: {
@@ -322,11 +437,11 @@
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.debts.title", "page.debts.desc", [
       UI.Button({ label: t("common.add"), variant: "primary", icon: "plus", onClick: function () {
-        UI.openDrawer({ title: t("common.add"), body: [
-          UI.FormField({ label: t("debts.counterparty"), placeholder: "—" }),
-          UI.FormField({ label: t("common.amount"), type: "number", placeholder: "0" }),
-          UI.FormField({ label: t("common.date"), type: "date" })
-        ] });
+        openEdit(t("debts.table.title"), [
+          { label: t("debts.counterparty"), value: "" },
+          { label: t("common.amount"), value: 0, type: "number" },
+          { label: t("common.date"), value: D.meta.updatedAt, type: "date" }
+        ], function (v) { db.rows.push({ cp: v[0], amount: num(v[1]), date: v[2], status: "new" }); });
       } })
     ]));
 
@@ -339,6 +454,18 @@
 
     page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
       title: t("debts.dynamics"), subtitle: D.meta.reportYear + "", type: "line", barOpts: { money: true },
+      onEdit: function () {
+        openEdit(t("debts.dynamics"), [
+          { label: t("debts.series.debt"), value: db.kpi.debt, type: "number" },
+          { label: t("debts.series.surcharge"), value: db.kpi.surcharge, type: "number" },
+          { label: t("debts.series.overpay"), value: db.kpi.overpay, type: "number" }
+        ], function (v) {
+          db.kpi.debt = num(v[0]); db.kpi.surcharge = num(v[1]); db.kpi.overpay = num(v[2]);
+          db.series.debt[db.series.debt.length - 1] = db.kpi.debt;
+          db.series.surcharge[db.series.surcharge.length - 1] = db.kpi.surcharge;
+          db.series.overpay[db.series.overpay.length - 1] = db.kpi.overpay;
+        });
+      },
       data: {
         labels: months,
         datasets: [
@@ -366,7 +493,13 @@
           { key: "date", label: t("common.date"), render: function (r) { return Fmt.date(r.date); } },
           { key: "amount", label: t("common.amount"), align: "right", render: function (r) { return money(r.amount); } },
           { key: "status", label: t("common.status"), render: function (r) { return UI.StatusBadge(r.status); } },
-          { key: "act", label: t("common.actions"), sticky: "right", render: function () { return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () { UI.openDrawer({ title: t("common.edit"), body: [UI.FormField({ label: t("common.amount"), type: "number" })] }); } }); } }
+          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) { return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
+            openEdit(r.cp, [
+              { label: t("debts.counterparty"), value: r.cp },
+              { label: t("common.amount"), value: r.amount, type: "number" },
+              { label: t("common.date"), value: r.date, type: "date" }
+            ], function (v) { r.cp = v[0]; r.amount = num(v[1]); r.date = v[2]; });
+          } }); } }
         ],
         rows: db.rows
       }))
@@ -399,7 +532,15 @@
     // Gauge / progress for bed-day execution
     var pct = Math.round(hd.bedDayExecution * 1000) / 10;
     var gaugeCard = h("div", { class: "card" }, [
-      h("div", { class: "card__head" }, h("div", { class: "card__title", text: t("health.bedday_exec") })),
+      cardHead("health.bedday_exec", { onEdit: function () {
+        openEdit(t("health.bedday_exec"), [
+          { label: t("health.bedday_fact"), value: hd.bedByType.factBedDays[0], type: "number" },
+          { label: t("health.bedday_plan"), value: hd.bedByType.planBedDays[0], type: "number" }
+        ], function (v) {
+          hd.bedByType.factBedDays[0] = num(v[0]); hd.bedByType.planBedDays[0] = num(v[1]);
+          hd.bedDayExecution = hd.bedByType.planBedDays[0] ? hd.bedByType.factBedDays[0] / hd.bedByType.planBedDays[0] : 0;
+        });
+      } }),
       h("div", { class: "card__body" }, [
         h("div", { class: "flex items-center justify-between mb-md" }, [
           h("span", { class: "text-display-sm tabular", style: "color:var(--text-primary)", text: Fmt.percent(pct) }),
@@ -418,6 +559,15 @@
     var bedCard = Charts.ChartCard({
       title: t("health.stationary"), subtitle: t("health.bedday_plan") + " · " + t("health.bedday_fact"),
       type: "bar",
+      onEdit: function () {
+        openEdit(t("health.stationary"), [
+          { label: t("health.bedday_plan"), value: hd.bedByType.planBedDays[0], type: "number" },
+          { label: t("health.bedday_fact"), value: hd.bedByType.factBedDays[0], type: "number" }
+        ], function (v) {
+          hd.bedByType.planBedDays[0] = num(v[0]); hd.bedByType.factBedDays[0] = num(v[1]);
+          hd.bedDayExecution = hd.bedByType.planBedDays[0] ? hd.bedByType.factBedDays[0] / hd.bedByType.planBedDays[0] : 0;
+        });
+      },
       data: {
         labels: [t("health.bedday_plan"), t("health.bedday_fact")],
         datasets: [{ label: t("health.stationary"), values: [hd.bedByType.planBedDays[0], hd.bedByType.factBedDays[0]], color: "1" }]
@@ -431,6 +581,7 @@
     var b = hd.byBudget.metrics;
     page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
       title: t("health.patients"), subtitle: t("health.by_type"), type: "bar",
+      onEdit: function () { editBudgetPaid("health.patients", b); },
       data: {
         labels: b.map(function (r) { return t(r.key); }),
         datasets: [
@@ -445,6 +596,12 @@
     // patients stationary vs ambulatory
     page.appendChild(h("div", { class: "section" }, Charts.ChartCard({
       title: t("health.patients"), subtitle: t("health.stationary") + " · " + t("health.ambulatory"), type: "doughnut",
+      onEdit: function () {
+        openEdit(t("health.patients"), [
+          { label: t("health.stationary"), value: hd.bedByType.patients[0], type: "number" },
+          { label: t("health.ambulatory"), value: hd.bedByType.patients[1], type: "number" }
+        ], function (v) { hd.bedByType.patients[0] = num(v[0]); hd.bedByType.patients[1] = num(v[1]); });
+      },
       data: { labels: [t("health.stationary"), t("health.ambulatory")], values: hd.bedByType.patients },
       height: 300
     })));

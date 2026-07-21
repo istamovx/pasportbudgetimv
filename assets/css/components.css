@@ -34,6 +34,7 @@
 
 .btn--sm { padding: var(--spacing-sm) var(--spacing-lg); font-size: var(--text-xs); }
 .btn--icon { padding: var(--spacing-md); }
+@media (max-width: 640px) { .btn__label-md { display: none; } }
 
 /* ---------- StatusBadge ---------- */
 .badge {

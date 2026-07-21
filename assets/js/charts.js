@@ -188,11 +188,14 @@
     var tableWrap = h("div", { class: "hidden" });
     var body = h("div", { class: "card__body" });
 
+    var headActions = h("div", { class: "card__head-actions" });
+    if (opts.onEdit) headActions.appendChild(UI.editButton(opts.onEdit));
     var head = h("div", { class: "card__head" }, [
       h("div", {}, [
         h("div", { class: "card__title", text: opts.title || "" }),
         opts.subtitle ? h("div", { class: "card__subtitle", text: opts.subtitle }) : null
-      ])
+      ]),
+      headActions
     ]);
 
     if (isEmpty) {
@@ -214,7 +217,7 @@
         tableWrap.classList.toggle("hidden", v !== "table");
       }
     });
-    head.appendChild(toggle);
+    headActions.appendChild(toggle);
 
     // canvas
     var height = opts.height || 320;
