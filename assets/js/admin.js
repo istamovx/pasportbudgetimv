@@ -940,7 +940,16 @@
   }
 
   /* ======================= 7. Bosh sahifa (xarita dashboard) ============ */
-  var dashState = { region: null, soha: "all", type: "all" };
+  var dashState = { region: null, district: null, soha: "all", type: "all", metric: "buildings" };
+
+  /* Metrikalar — kartalar saralaydi: xarita, reyting va legenda shu metrikaga bo'yaladi */
+  var DASH_METRICS = [
+    { id: "orgs", icon: "building", key: "dash.m.orgs", tone: "", calc: function (list) { var o = {}; list.forEach(function (b) { o[b.org] = 1; }); return Object.keys(o).length; }, fmt: function (v) { return Fmt.num(v); } },
+    { id: "buildings", icon: "grid", key: "dash.kpi.buildings", tone: "ok", calc: function (list) { return list.length; }, fmt: function (v) { return Fmt.num(v); } },
+    { id: "area", icon: "map", key: "dash.kpi.area", tone: "", calc: function (list) { return list.reduce(function (a, b) { return a + b.area; }, 0); }, fmt: function (v) { return Fmt.compact(v) + " m²"; } },
+    { id: "repair", icon: "refresh", key: "dash.kpi.repair", tone: "warn", calc: function (list) { return list.filter(function (b) { return b.status === "repair"; }).length; }, fmt: function (v) { return Fmt.num(v); } }
+  ];
+  function dashMetric() { return DASH_METRICS.filter(function (m) { return m.id === dashState.metric; })[0] || DASH_METRICS[1]; }
   var SVG_NS = "http://www.w3.org/2000/svg";
 
   function bLabel(n) { return Fmt.num(n) + " ta"; }
@@ -1000,6 +1009,10 @@
     if (s.indexOf(" shahri") < 0 && s.indexOf(" tumani") < 0) s += " tumani";
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
+  /* Tuman nomlarini solishtirish uchun normalizatsiya ("Zarbdor tumani" == "Zarbdor") */
+  function distBase(s) {
+    return String(s).toLowerCase().replace(/\s+(tumani|shahri|shahar)$/i, "").replace(/[‘’'ʻ`-]/g, "").trim();
+  }
 
   function renderDashboard() {
     return dashState.region ? dashRegionView() : dashCountryView();
@@ -1008,60 +1021,75 @@
   function dashCountryView() {
     var names = AD().mapRegionNames;
     var all = AD().buildings;
-    var byRegion = {};
-    all.forEach(function (b) { byRegion[b.regionKey] = (byRegion[b.regionKey] || 0) + 1; });
-    var maxCount = Math.max.apply(null, Object.keys(byRegion).map(function (k) { return byRegion[k]; }));
-    var totalArea = all.reduce(function (a, b) { return a + b.area; }, 0);
-    var needRepair = all.filter(function (b) { return b.status === "repair"; }).length;
+    var metric = dashMetric();
+
+    // Har hudud uchun aktiv metrika qiymati
+    var regionVals = {};
+    Object.keys(names).forEach(function (k) { regionVals[k] = metric.calc(all.filter(function (b) { return b.regionKey === k; })); });
+    var maxVal = Math.max.apply(null, Object.keys(regionVals).map(function (k) { return regionVals[k]; })) || 1;
 
     var page = h("div", { class: "page" });
     page.appendChild(pageHead(t("dash.title"), t("dash.desc")));
 
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
-      App.kpi("building", t("admin.kpi.orgs"), App.orgs().length, null, ""),
-      App.kpi("grid", t("dash.kpi.buildings"), all.length, null, "ok"),
-      App.kpi("map", t("dash.kpi.area"), Math.round(totalArea / 1000) + " ming m²", null, ""),
-      App.kpi("refresh", t("dash.kpi.repair"), needRepair, Math.round(needRepair / all.length * 100), "warn")
-    ])));
+    // Metric kartalar — bosilsa butun dashboard shu metrikaga saralanadi
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" },
+      DASH_METRICS.map(function (m) {
+        var val = m.id === "orgs" ? App.orgs().length : m.calc(all);
+        var card = h("button", { class: "adm-kpi metric-card" + (dashState.metric === m.id ? " is-active" : ""), type: "button",
+          "aria-pressed": dashState.metric === m.id ? "true" : "false",
+          onClick: function () { dashState.metric = m.id; App.refresh(); } }, [
+          h("div", { class: "adm-kpi__icon adm-kpi__icon--" + (m.tone || "brand") }, UI.icon(m.icon)),
+          h("div", { class: "adm-kpi__meta" }, [
+            h("div", { class: "adm-kpi__label", text: t(m.key) }),
+            h("div", { class: "adm-kpi__row" }, [
+              h("span", { class: "adm-kpi__value", text: m.fmt(val) }),
+              dashState.metric === m.id ? h("span", { class: "metric-card__tag", text: t("dash.metric_on") }) : null
+            ])
+          ])
+        ]);
+        return card;
+      })
+    )));
 
-    // Xarita + hudud reytingi
+    // Xarita + hudud reytingi (aktiv metrika bo'yicha)
     var mapEntries = global.UZMAP_REGIONS || [];
     var map = uzMap(mapEntries, {
       inert: function (e) { return !names[e.type]; },
-      value: function (e) { return byRegion[e.type] || 0; },
-      max: maxCount,
-      onClick: function (e) { dashState.region = e.type; dashState.soha = "all"; dashState.type = "all"; App.refresh(); },
+      value: function (e) { return regionVals[e.type] || 0; },
+      max: maxVal,
+      onClick: function (e) { dashState.region = e.type; dashState.district = null; dashState.soha = "all"; dashState.type = "all"; App.refresh(); },
       tooltip: function (e) {
         var rn = names[e.type], list = buildingsOf(rn);
         var orgs = {}; list.forEach(function (b) { orgs[b.org] = 1; });
         var area = list.reduce(function (a, b) { return a + b.area; }, 0);
         return [
           h("div", { class: "uzmap-tip__title", text: rn }),
-          tipRow(t("admin.kpi.orgs"), bLabel(Object.keys(orgs).length)),
+          tipRow(t("dash.m.orgs"), bLabel(Object.keys(orgs).length)),
           tipRow(t("dash.kpi.buildings"), bLabel(list.length)),
           tipRow(t("dash.kpi.area"), Fmt.num(area) + " m²"),
+          tipRow(t("dash.kpi.repair"), bLabel(list.filter(function (b) { return b.status === "repair"; }).length)),
           h("div", { class: "uzmap-tip__hint", text: t("dash.tip_hint") })
         ];
       }
     });
 
     var rank = h("div", { class: "dash-rank card" });
-    rank.appendChild(h("div", { class: "con-col__title", text: t("dash.rank_title") }));
+    rank.appendChild(h("div", { class: "con-col__title", text: t("dash.rank_title") + " · " + t(metric.key).toLowerCase() }));
     Object.keys(names)
-      .map(function (k) { return { key: k, name: names[k], count: byRegion[k] || 0 }; })
-      .sort(function (a, b) { return b.count - a.count; })
+      .map(function (k) { return { key: k, name: names[k], val: regionVals[k] || 0 }; })
+      .sort(function (a, b) { return b.val - a.val; })
       .forEach(function (r) {
-        rank.appendChild(h("button", { class: "dash-rank__row", type: "button", onClick: function () { dashState.region = r.key; App.refresh(); } }, [
+        rank.appendChild(h("button", { class: "dash-rank__row", type: "button", onClick: function () { dashState.region = r.key; dashState.district = null; App.refresh(); } }, [
           h("span", { class: "dash-rank__name", text: r.name }),
-          h("span", { class: "dash-rank__bar" }, h("span", { class: "dash-rank__fill", style: "width:" + Math.round(r.count / maxCount * 100) + "%" })),
-          h("span", { class: "dash-rank__val", text: String(r.count) })
+          h("span", { class: "dash-rank__bar" }, h("span", { class: "dash-rank__fill", style: "width:" + Math.round(r.val / maxVal * 100) + "%" })),
+          h("span", { class: "dash-rank__val", text: metric.id === "area" ? Fmt.compact(r.val) : String(r.val) })
         ]));
       });
 
     page.appendChild(h("div", { class: "section dash-map-grid" }, [
       h("div", { class: "card dash-map-card" }, [
         h("div", { class: "card__head" }, [
-          h("div", {}, [h("div", { class: "card__title", text: t("dash.map_title") }), h("div", { class: "card__subtitle", text: t("dash.map_sub") })]),
+          h("div", {}, [h("div", { class: "card__title", text: t("dash.map_title") }), h("div", { class: "card__subtitle", text: t("dash.map_sub") + " · " + t(metric.key) })]),
           h("div", { class: "dash-legend" }, [
             h("span", { class: "dash-legend__label", text: t("dash.legend_few") }),
             h("span", { class: "dash-legend__scale" }),
@@ -1072,7 +1100,67 @@
       ]),
       rank
     ]));
+
+    // TOP tashkilotlar (bino maydoni bo'yicha) — bosilsa binolarigacha kirish
+    var byOrg = {};
+    all.forEach(function (b) {
+      if (!byOrg[b.org]) byOrg[b.org] = { org: b.org, region: b.region, count: 0, area: 0, list: [] };
+      byOrg[b.org].count++; byOrg[b.org].area += b.area; byOrg[b.org].list.push(b);
+    });
+    var top = Object.keys(byOrg).map(function (k) { return byOrg[k]; }).sort(function (a, b) { return b.area - a.area; }).slice(0, 6);
+    var topCard = h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, h("div", {}, [
+        h("div", { class: "card__title", text: t("dash.top_title") }),
+        h("div", { class: "card__subtitle", text: t("dash.top_sub") })
+      ])),
+      h("div", { class: "card__body card__body--flush" }, top.map(function (o, i) {
+        return h("button", { class: "dash-top", type: "button", onClick: function () { openOrgBuildingsDrawer(o); } }, [
+          h("span", { class: "dash-top__rank dash-top__rank--" + (i + 1), text: String(i + 1) }),
+          h("span", { class: "dash-top__meta" }, [
+            h("span", { class: "dash-top__name", text: o.org }),
+            h("span", { class: "dash-top__sub", text: o.region + " · " + Fmt.num(o.count) + " " + t("dash.kpi.buildings").toLowerCase() })
+          ]),
+          h("span", { class: "dash-top__val" }, [h("b", { text: Fmt.num(o.area) }), h("span", { text: " m²" })]),
+          UI.icon("chevron-right", "dash-top__chev")
+        ]);
+      }))
+    ]);
+    page.appendChild(h("div", { class: "section" }, topCard));
     return page;
+  }
+
+  /* TOP tashkilot: binolari ro'yxati (ildizgacha) */
+  function openOrgBuildingsDrawer(o) {
+    var body = h("div", { class: "assign-list" }, o.list.map(function (b) {
+      return h("button", { class: "assign-row", type: "button", onClick: function () { openBuildingDrawer(b); } }, [
+        h("span", { class: "assign-row__icon" }, UI.icon("building")),
+        h("span", { class: "assign-row__meta" }, [
+          h("span", { class: "assign-row__name", text: b.type + " · " + b.district }),
+          h("span", { class: "assign-row__stir", text: Fmt.num(b.area) + " m² · " + b.built + (b.renovated ? " / " + b.renovated : "") })
+        ]),
+        UI.icon("chevron-right", "assign-row__check")
+      ]);
+    }));
+    UI.openDrawer({ title: o.org, desc: o.region + " · " + Fmt.num(o.area) + " m²", body: body, footer: false });
+  }
+
+  /* Bino kartochkasi (eng quyi daraja) */
+  function openBuildingDrawer(b) {
+    function row(l, v) { return h("div", { class: "odx-info__row" }, [h("span", { class: "odx-info__label", text: l }), h("span", { class: "odx-info__value" }, typeof v === "string" ? h("span", { text: v }) : v)]); }
+    UI.openDrawer({
+      title: b.type,
+      desc: b.org,
+      body: h("div", {}, [
+        row(t("admin.filter.region"), b.region),
+        row("Tuman", b.district),
+        row(t("dash.soha"), b.soha),
+        row(t("dash.col.area"), Fmt.num(b.area) + " m²"),
+        row(t("dash.col.built"), String(b.built)),
+        row(t("dash.col.renovated"), b.renovated ? String(b.renovated) : "—"),
+        row(t("common.status"), h("span", { class: "badge badge--dotless badge--" + (b.status === "good" ? "success" : "warning"), text: b.status === "good" ? t("dash.st_good") : t("dash.st_repair") }))
+      ]),
+      footer: false
+    });
   }
   function tipRow(label, val) {
     return h("div", { class: "uzmap-tip__row" }, [h("span", { text: label }), h("b", { text: val })]);
@@ -1105,32 +1193,44 @@
       App.kpi("refresh", t("dash.kpi.repair"), needRepair, list.length ? Math.round(needRepair / list.length * 100) : 0, "warn")
     ])));
 
-    // Tuman xaritasi
-    var byDistrict = {}; list.forEach(function (b) { byDistrict[b.district] = (byDistrict[b.district] || 0) + 1; });
+    // Tuman xaritasi — tuman bosilsa quyidagi reestr shu tumanga filtrlanadi
+    var byDistrict = {}; list.forEach(function (b) { var k = distBase(b.district); byDistrict[k] = (byDistrict[k] || 0) + 1; });
     if (entry && entry.districts && entry.districts.length) {
       var dmap = uzMap(entry.districts, {
         fit: true,
-        value: function (d) { return byDistrict[distName(d.type)] || 1; },
+        value: function (d) { return byDistrict[distBase(distName(d.type))] || 1; },
         max: Math.max.apply(null, Object.keys(byDistrict).length ? Object.keys(byDistrict).map(function (k) { return byDistrict[k]; }) : [1]),
+        onClick: function (d) { var dn = distName(d.type); dashState.district = dashState.district === dn ? null : dn; App.refresh(); },
         tooltip: function (d) {
-          var dn = distName(d.type);
-          var db = list.filter(function (b) { return b.district === dn; });
+          var dn = distName(d.type), dbase = distBase(dn);
+          var db = list.filter(function (b) { return distBase(b.district) === dbase; });
           var darea = db.reduce(function (a, b) { return a + b.area; }, 0);
           return [
             h("div", { class: "uzmap-tip__title", text: dn }),
             tipRow(t("dash.kpi.buildings"), bLabel(db.length)),
-            db.length ? tipRow(t("dash.kpi.area"), Fmt.num(darea) + " m²") : null
+            db.length ? tipRow(t("dash.kpi.area"), Fmt.num(darea) + " m²") : null,
+            h("div", { class: "uzmap-tip__hint", text: t("dash.district_hint") })
           ];
         }
       });
       page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
-        h("div", { class: "card__head" }, h("div", {}, [h("div", { class: "card__title", text: t("dash.district_map") }), h("div", { class: "card__subtitle", text: regionName })])),
+        h("div", { class: "card__head" }, [
+          h("div", {}, [h("div", { class: "card__title", text: t("dash.district_map") }), h("div", { class: "card__subtitle", text: regionName })]),
+          dashState.district ? h("div", { class: "card__head-actions" }, h("button", { class: "dash-chip is-active", type: "button", onClick: function () { dashState.district = null; App.refresh(); } }, [
+            h("span", { text: dashState.district }), h("span", { class: "dash-chip__n", text: "✕" })
+          ])) : null
+        ]),
         h("div", { class: "card__body dash-district-map" }, dmap)
       ])));
     }
 
-    // Soha filtri + bino turlari chiplari
-    var filteredBySoha = function () { return list.filter(function (b) { return dashState.soha === "all" || b.soha === dashState.soha; }); };
+    // Soha filtri + bino turlari chiplari (tuman filtri bilan)
+    var filteredBySoha = function () {
+      return list.filter(function (b) {
+        if (dashState.district && distBase(b.district) !== distBase(dashState.district)) return false;
+        return dashState.soha === "all" || b.soha === dashState.soha;
+      });
+    };
     var body = h("div");
     var sohaSel = UI.Select({
       value: dashState.soha,
@@ -1165,7 +1265,10 @@
           { key: "area", label: t("dash.col.area"), align: "right", render: function (r) { return Fmt.num(r.area) + " m²"; } },
           { key: "built", label: t("dash.col.built"), align: "right" },
           { key: "renovated", label: t("dash.col.renovated"), align: "right", render: function (r) { return r.renovated || "—"; } },
-          { key: "status", label: t("common.status"), render: function (r) { return h("span", { class: "badge badge--dotless badge--" + (r.status === "good" ? "success" : "warning"), text: r.status === "good" ? t("dash.st_good") : t("dash.st_repair") }); } }
+          { key: "status", label: t("common.status"), render: function (r) { return h("span", { class: "badge badge--dotless badge--" + (r.status === "good" ? "success" : "warning"), text: r.status === "good" ? t("dash.st_good") : t("dash.st_repair") }); } },
+          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+            return UI.Button({ icon: "eye", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { openBuildingDrawer(r); } });
+          } }
         ],
         rows: rows,
         empty: { icon: "building" }
