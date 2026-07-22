@@ -610,6 +610,26 @@
 .od-legend__dot--user { background: var(--bg-error-primary); }
 .od-legend__dot--int { background: var(--bg-secondary); }
 
+/* ---------- Admin: sohalar kartalari ---------- */
+.soha-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-lg); }
+@media (max-width: 1200px) { .soha-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .soha-grid { grid-template-columns: 1fr; } }
+.soha-card {
+  padding: var(--spacing-2xl); text-align: left; cursor: pointer;
+  display: flex; flex-direction: column; gap: var(--spacing-xl);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+.soha-card:hover { border-color: var(--border-brand); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.soha-card__head { display: flex; align-items: center; gap: var(--spacing-lg); min-width: 0; }
+.soha-card__tile { width: 36px; height: 36px; border-radius: var(--radius-sm); display: grid; place-items: center; color: #fff; flex: none; }
+.soha-card__tile .icon { width: 18px; height: 18px; }
+.soha-card__name { font-weight: var(--font-weight-bold); color: var(--text-primary); font-size: var(--text-md); min-width: 0; overflow-wrap: anywhere; }
+.soha-card__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.soha-card__stat { display: flex; flex-direction: column; gap: 2px; padding: 0 var(--spacing-lg); border-left: 1px solid var(--border-secondary); min-width: 0; }
+.soha-card__stat:first-child { border-left: 0; padding-left: 0; }
+.soha-card__stat-l { font-size: var(--text-xs); color: var(--text-secondary); }
+.soha-card__stat-v { font-size: var(--text-lg); font-weight: var(--font-weight-bold); color: var(--text-primary); }
+
 /* ---------- Admin: klassifikatorlar (master-detail) ---------- */
 .cls-layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: var(--spacing-2xl); align-items: start; }
 @media (max-width: 1024px) { .cls-layout { grid-template-columns: 1fr; } }

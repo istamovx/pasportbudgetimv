@@ -114,12 +114,14 @@
     aconstructor: function () { return global.AdminPages.konstruktor(); },
     aclassifiers: function () { return global.AdminPages.classifiers(); },
     alogs: function () { return global.AdminPages.logs(); },
-    aorgdetail: function () { return global.AdminPages.orgDetail(); }
+    aorgdetail: function () { return global.AdminPages.orgDetail(); },
+    asohalar: function () { return global.AdminPages.sohalar(); }
   };
   var ADMIN_NAV = [
     { heading: "admin.group.main" },
     { id: "adashboard", icon: "grid" },
     { id: "aorgs", icon: "chart" },
+    { id: "asohalar", icon: "box" },
     { id: "aorgmanage", icon: "building" },
     { id: "ausers", icon: "users" },
     { heading: "admin.group.system" },
