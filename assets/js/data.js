@@ -127,7 +127,8 @@
       categories: [
         { key: "staff.cat.management", plan: 16, occupied: 15, physical: 16, vacant: 1 },
         { key: "staff.cat.production", plan: 513.5, occupied: 456.5, physical: 482, vacant: 57 },
-        { key: "staff.cat.technical", plan: 61.75, occupied: 85.25, physical: 101, vacant: -23.5 }
+        { key: "staff.cat.technical", plan: 61.75, occupied: 85.25, physical: 101, vacant: -23.5 },
+        { key: "staff.cat.specialists", plan: 0, occupied: 0, physical: 0, vacant: 0 }
       ],
       byTarif: [
         { key: "staff.tarif.others", plan: 76.25, occupied: 65.5, physical: 74, vacant: 10.75 },
@@ -145,7 +146,8 @@
           { label: "Rahbar o‘rinbosarlari soni", plan: 4, occupied: 4, physical: 4, vacant: 0 },
           { label: "Ma’muriy-boshqaruv xodimlar soni", plan: 6, occupied: 5, physical: 6, vacant: 1 },
           { label: "Ma’muriy-boshqaruvning mutaxassis xodimlar soni", plan: 3, occupied: 3, physical: 3, vacant: 0 },
-          { label: "Ma’muriy-boshqaruvning yordamchi xodimlar soni", plan: 2, occupied: 2, physical: 2, vacant: 0 }
+          { label: "Ma’muriy-boshqaruvning yordamchi xodimlar soni", plan: 2, occupied: 2, physical: 2, vacant: 0 },
+          { label: "Rahbar maslahatchilari soni", plan: 0, occupied: 0, physical: 0, vacant: 0 }
         ],
         "staff.cat.production": [
           { label: "Vrachlar soni", plan: 142.5, occupied: 128, physical: 135, vacant: 14.5 },
@@ -156,8 +158,19 @@
         "staff.cat.technical": [
           { label: "Texnik xodimlar soni", plan: 30, occupied: 45, physical: 55, vacant: -15 },
           { label: "Xizmat ko‘rsatish xodimlari soni", plan: 31.75, occupied: 40.25, physical: 46, vacant: -8.5 }
+        ],
+        "staff.cat.specialists": [
+          { label: "Bosh mutaxassislar soni", plan: 0, occupied: 0, physical: 0, vacant: 0 },
+          { label: "Yetakchi mutaxassislar soni", plan: 0, occupied: 0, physical: 0, vacant: 0 },
+          { label: "1-toifali mutaxassislar soni", plan: 0, occupied: 0, physical: 0, vacant: 0 }
         ]
       },
+      /* Xodimlarning ilmiy darajasi (jismoniy shaxslar kesimida) */
+      ilmiyDaraja: [
+        { label: "Fan doktorlari (DSc)", value: 8 },
+        { label: "Fan nomzodlari / falsafa doktorlari (PhD)", value: 27 },
+        { label: "Ilmiy darajaga ega bo‘lmagan xodimlar", value: 564 }
+      ],
       /* Malaka toifalari (band jismoniy shaxslar kesimida) */
       malaka: [
         { group: "Vrachlar", rows: [
