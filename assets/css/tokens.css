@@ -54,8 +54,9 @@
   --font-family-base: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --font-family-mono: "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
 
-  --text-xs: 12px;    --text-xs-lh: 18px;
-  --text-sm: 14px;    --text-sm-lh: 20px;
+  /* Minimal font size loyihada 16px */
+  --text-xs: 16px;    --text-xs-lh: 22px;
+  --text-sm: 16px;    --text-sm-lh: 24px;
   --text-md: 16px;    --text-md-lh: 24px;
   --text-lg: 18px;    --text-lg-lh: 28px;
   --text-xl: 20px;    --text-xl-lh: 30px;

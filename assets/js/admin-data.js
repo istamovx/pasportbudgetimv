@@ -375,6 +375,14 @@
     andijan: "Andijon viloyati"
   };
 
+  /* Hudud markazlari (bino joylashuvi uchun) */
+  var REGION_CENTERS = {
+    karakalpak: [42.46, 59.61], khwarezm: [41.55, 60.63], navoi: [40.1, 65.37], bukhara: [39.77, 64.42],
+    samarqand: [39.65, 66.96], qarshi: [38.86, 65.79], surxon: [37.94, 67.57], jizzakh: [40.12, 67.83],
+    sirdaryo: [40.5, 68.78], toshkent: [41.0, 69.4], toshkent_sh: [41.311, 69.28],
+    namangan: [41.0, 71.67], fergana: [40.38, 71.78], andijan: [40.78, 72.34]
+  };
+
   /* ---- Binolar reestri (hudud/soha/tur kesimida, deterministik mock) ---- */
   var B_TYPES = ["Poliklinika", "Davolash korpusi", "Ma’muriy bino", "Omborxona", "Garaj", "Qozonxona", "O‘likxona (patologiya)", "Suzish havzasi (basseyn)", "Oshxona bloki", "Laboratoriya"];
   var B_SOHA = ["Sog‘liqni saqlash", "Umumiy ta’lim", "Maktabgacha ta’lim", "Madaniyat", "Sport"];
@@ -402,7 +410,10 @@
         soha: soha, type: type,
         area: 250 + ((i * 173 + ri * 97) % 4800),              // m²
         built: built, renovated: ren,
-        status: !ren || ren < 2008 ? "repair" : "good"
+        status: !ren || ren < 2008 ? "repair" : "good",
+        stir: "3" + String(10000000 + ((ri * 239 + i) * 7919) % 89999999),
+        lat: (REGION_CENTERS[key] || [41.3, 69.3])[0] + (((i * 37 + ri * 11) % 100) - 50) / 320,
+        lng: (REGION_CENTERS[key] || [41.3, 69.3])[1] + (((i * 53 + ri * 17) % 100) - 50) / 260
       });
     }
   });

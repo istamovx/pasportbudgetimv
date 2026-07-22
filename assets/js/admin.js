@@ -582,11 +582,9 @@
     var page = h("div", { class: "page" });
     var pctAll = od.userFields.total ? Math.round(od.userFields.done / od.userFields.total * 100) : 0;
 
-    // Qaytish + pasport
-    page.appendChild(h("div", { class: "flex justify-between items-start gap-lg flex-wrap", style: "margin-bottom:var(--spacing-lg)" }, [
-      h("button", { class: "odx-back", type: "button", onClick: function () { App.navigate("aorgs"); } }, [UI.icon("chevron-left"), h("span", { text: t("od.back_registry") })]),
-      UI.Button({ label: t("od.open_passport"), variant: "secondary", size: "sm", icon: "eye", onClick: function () { App.openOrg(org); } })
-    ]));
+    // Qaytish (tashkilot roliga o'tilmaydi — barcha ma'lumot shu sahifada)
+    page.appendChild(h("div", { class: "flex justify-between items-start gap-lg flex-wrap", style: "margin-bottom:var(--spacing-lg)" },
+      h("button", { class: "odx-back", type: "button", onClick: function () { App.navigate("aorgs"); } }, [UI.icon("chevron-left"), h("span", { text: t("od.back_registry") })])));
 
     // Gradient hero banner
     page.appendChild(h("div", { class: "odx-hero" }, [
@@ -965,6 +963,15 @@
     svg.setAttribute("fill", "none");
     svg.classList.add("uzmap");
     var tip = h("div", { class: "uzmap-tip" });
+    var selItems = [];
+    function syncSel() {
+      if (!opts.selected) return;
+      selItems.forEach(function (it) {
+        var on = !!opts.selected(it.e);
+        it.base.classList.toggle("is-selected", on);
+        it.hit.classList.toggle("is-selected", on);
+      });
+    }
 
     entries.forEach(function (e) {
       var inert = opts.inert && opts.inert(e);
@@ -983,7 +990,8 @@
       var hit = document.createElementNS(SVG_NS, "path");
       hit.setAttribute("d", g1.d);
       hit.setAttribute("class", "uzmap__hit");
-      hit.addEventListener("click", function () { if (opts.onClick) opts.onClick(e); });
+      selItems.push({ e: e, base: base, hit: hit });
+      hit.addEventListener("click", function () { if (opts.onClick) opts.onClick(e); syncSel(); });
       hit.addEventListener("mouseenter", function () { base.classList.add("is-hover"); hit.classList.add("is-hover"); if (opts.tooltip) { tip.innerHTML = ""; UI.append(tip, opts.tooltip(e)); tip.classList.add("is-on"); } });
       hit.addEventListener("mousemove", function (ev) {
         var r = wrap.getBoundingClientRect();
@@ -996,6 +1004,8 @@
       svg.appendChild(hit);
     });
 
+    syncSel();
+    wrap._syncSel = syncSel;
     wrap.appendChild(svg);
     wrap.appendChild(tip);
     if (opts.fit) setTimeout(function () {
@@ -1144,23 +1154,38 @@
     UI.openDrawer({ title: o.org, desc: o.region + " · " + Fmt.num(o.area) + " m²", body: body, footer: false });
   }
 
-  /* Bino kartochkasi (eng quyi daraja) */
+  /* Bino kartochkasi (eng quyi daraja): joylashuv xaritasi + pasportga o'tish */
   function openBuildingDrawer(b) {
     function row(l, v) { return h("div", { class: "odx-info__row" }, [h("span", { class: "odx-info__label", text: l }), h("span", { class: "odx-info__value" }, typeof v === "string" ? h("span", { text: v }) : v)]); }
+    var mapEl = h("div", { class: "odx-map odx-map--sm" });
     UI.openDrawer({
       title: b.type,
       desc: b.org,
       body: h("div", {}, [
+        mapEl,
         row(t("admin.filter.region"), b.region),
         row("Tuman", b.district),
         row(t("dash.soha"), b.soha),
         row(t("dash.col.area"), Fmt.num(b.area) + " m²"),
         row(t("dash.col.built"), String(b.built)),
         row(t("dash.col.renovated"), b.renovated ? String(b.renovated) : "—"),
-        row(t("common.status"), h("span", { class: "badge badge--dotless badge--" + (b.status === "good" ? "success" : "warning"), text: b.status === "good" ? t("dash.st_good") : t("dash.st_repair") }))
+        row(t("common.status"), h("span", { class: "badge badge--dotless badge--" + (b.status === "good" ? "success" : "warning"), text: b.status === "good" ? t("dash.st_good") : t("dash.st_repair") })),
+        h("div", { class: "flex justify-end", style: "margin-top:var(--spacing-lg)" },
+          UI.Button({ label: t("dash.open_org"), variant: "primary", icon: "eye", onClick: function () {
+            UI.closeDrawer();
+            App.openOrgDetail({ name: b.org, stir: b.stir || "—", region: b.region, type: b.soha });
+          } }))
       ]),
       footer: false
     });
+    if (b.lat && b.lng) setTimeout(function () {
+      if (!global.L || !mapEl.isConnected) return;
+      try {
+        var m = global.L.map(mapEl, { scrollWheelZoom: false, zoomControl: false }).setView([b.lat, b.lng], 14);
+        global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(m);
+        global.L.marker([b.lat, b.lng]).addTo(m).bindPopup("<b>" + b.type + "</b><br>" + b.org).openPopup();
+      } catch (e) {}
+    }, 80);
   }
   function tipRow(label, val) {
     return h("div", { class: "uzmap-tip__row" }, [h("span", { text: label }), h("b", { text: val })]);
@@ -1193,14 +1218,30 @@
       App.kpi("refresh", t("dash.kpi.repair"), needRepair, list.length ? Math.round(needRepair / list.length * 100) : 0, "warn")
     ])));
 
-    // Tuman xaritasi — tuman bosilsa quyidagi reestr shu tumanga filtrlanadi
+    // Tuman xaritasi — tuman bosilsa reestr JOYIDA filtrlanadi (sahifa qayta chizilmaydi)
     var byDistrict = {}; list.forEach(function (b) { var k = distBase(b.district); byDistrict[k] = (byDistrict[k] || 0) + 1; });
+    var dmapWrap = null;
+    var chipHost = h("div", { class: "card__head-actions" });
+    function syncChip() {
+      chipHost.innerHTML = "";
+      if (!dashState.district) return;
+      chipHost.appendChild(h("button", { class: "dash-chip is-active", type: "button", onClick: function () {
+        dashState.district = null;
+        if (dmapWrap && dmapWrap._syncSel) dmapWrap._syncSel();
+        syncChip(); renderBody();
+      } }, [h("span", { text: dashState.district }), h("span", { class: "dash-chip__n", text: "✕" })]));
+    }
     if (entry && entry.districts && entry.districts.length) {
-      var dmap = uzMap(entry.districts, {
+      dmapWrap = uzMap(entry.districts, {
         fit: true,
         value: function (d) { return byDistrict[distBase(distName(d.type))] || 1; },
         max: Math.max.apply(null, Object.keys(byDistrict).length ? Object.keys(byDistrict).map(function (k) { return byDistrict[k]; }) : [1]),
-        onClick: function (d) { var dn = distName(d.type); dashState.district = dashState.district === dn ? null : dn; App.refresh(); },
+        selected: function (d) { return !!dashState.district && distBase(distName(d.type)) === distBase(dashState.district); },
+        onClick: function (d) {
+          var dn = distName(d.type);
+          dashState.district = dashState.district === dn ? null : dn;
+          syncChip(); renderBody();
+        },
         tooltip: function (d) {
           var dn = distName(d.type), dbase = distBase(dn);
           var db = list.filter(function (b) { return distBase(b.district) === dbase; });
@@ -1213,14 +1254,13 @@
           ];
         }
       });
+      syncChip();
       page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
         h("div", { class: "card__head" }, [
           h("div", {}, [h("div", { class: "card__title", text: t("dash.district_map") }), h("div", { class: "card__subtitle", text: regionName })]),
-          dashState.district ? h("div", { class: "card__head-actions" }, h("button", { class: "dash-chip is-active", type: "button", onClick: function () { dashState.district = null; App.refresh(); } }, [
-            h("span", { text: dashState.district }), h("span", { class: "dash-chip__n", text: "✕" })
-          ])) : null
+          chipHost
         ]),
-        h("div", { class: "card__body dash-district-map" }, dmap)
+        h("div", { class: "card__body dash-district-map" }, dmapWrap)
       ])));
     }
 
