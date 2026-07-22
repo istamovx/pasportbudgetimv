@@ -213,6 +213,7 @@
       "odx.h2": "Pasport ma’lumotlari tasdiqlandi",
       "odx.h3": "Transport reestri sinxronlandi",
       "odx.fill_title": "To‘ldirilganlik va integratsiyalar",
+      "odx.fill_by_tab": "To‘ldirilganlik bo‘limlar kesimida",
       "dash.title": "Bosh sahifa",
       "dash.desc": "Respublika kesimidagi analitika: hududlar, tashkilotlar va binolar.",
       "dash.kpi.buildings": "Binolar",
