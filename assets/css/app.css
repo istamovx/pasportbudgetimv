@@ -454,6 +454,16 @@
 .uzmap__hit.is-hover { stroke: var(--utility-brand-700); stroke-width: 2.5; }
 .uzmap__base.is-selected { fill: var(--utility-brand-700); fill-opacity: 1 !important; }
 .uzmap__hit.is-selected { stroke: var(--utility-brand-800, var(--utility-brand-700)); stroke-width: 3; }
+/* Kategorik rejim: tumanlar har xil rang bilan ajratiladi */
+.uzmap__cat { fill-opacity: 0.75; transition: fill-opacity var(--transition-fast); pointer-events: none; }
+.uzmap__cat.is-hover { fill-opacity: 1; }
+.uzmap__cat.is-selected { fill: var(--utility-brand-700); fill-opacity: 1; }
+/* Hudud nomlari */
+.uzmap__label {
+  pointer-events: none; text-anchor: middle; dominant-baseline: middle;
+  fill: #fff; font-weight: 600; letter-spacing: 0.01em;
+  paint-order: stroke; stroke: rgba(16, 24, 40, 0.45); stroke-width: 2.5px; stroke-linejoin: round;
+}
 [data-theme="dark"] .uzmap__hit { stroke: var(--bg-secondary); }
 .uzmap-tip {
   position: absolute; z-index: 20; min-width: 220px; max-width: 280px; pointer-events: none;

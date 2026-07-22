@@ -981,16 +981,23 @@
       });
     }
 
-    entries.forEach(function (e) {
+    entries.forEach(function (e, idx) {
       var inert = opts.inert && opts.inert(e);
       var g0 = e.g && e.g[0], g1 = (e.g && e.g[1]) || g0;
       if (!g0) return;
       var base = document.createElementNS(SVG_NS, "path");
       base.setAttribute("d", g0.d);
-      base.setAttribute("class", "uzmap__base" + (inert ? " is-inert" : ""));
-      if (!inert && opts.value) {
-        var v = opts.value(e), ratio = opts.max ? v / opts.max : 0;
-        base.style.fillOpacity = String(0.18 + 0.82 * Math.max(0, Math.min(1, ratio)));
+      if (opts.color && !inert) {
+        // Kategorik rejim: har hudud o'z rangi bilan ajratiladi (fill atribut orqali —
+        // is-hover/is-selected CSS klasslari undan ustun turadi)
+        base.setAttribute("class", "uzmap__cat");
+        base.setAttribute("fill", opts.color(e, idx));
+      } else {
+        base.setAttribute("class", "uzmap__base" + (inert ? " is-inert" : ""));
+        if (!inert && opts.value) {
+          var v = opts.value(e), ratio = opts.max ? v / opts.max : 0;
+          base.style.fillOpacity = String(0.18 + 0.82 * Math.max(0, Math.min(1, ratio)));
+        }
       }
       svg.appendChild(base);
       if (inert) return;
@@ -1016,8 +1023,24 @@
     wrap._syncSel = syncSel;
     wrap.appendChild(svg);
     wrap.appendChild(tip);
-    if (opts.fit) setTimeout(function () {
-      try { var bb = svg.getBBox(); svg.setAttribute("viewBox", (bb.x - 12) + " " + (bb.y - 12) + " " + (bb.width + 24) + " " + (bb.height + 24)); } catch (e) {}
+    setTimeout(function () {
+      if (opts.fit) {
+        try { var bb = svg.getBBox(); svg.setAttribute("viewBox", (bb.x - 12) + " " + (bb.y - 12) + " " + (bb.width + 24) + " " + (bb.height + 24)); } catch (e) {}
+      }
+      // Hudud nomlari (markazga yozuv; pointer-events yo'q — bosishga xalaqit bermaydi)
+      if (opts.label) selItems.forEach(function (it) {
+        try {
+          var pb = it.base.getBBox();
+          if (pb.width < 26) return; // juda kichik hudud — yozuv sig'maydi
+          var txt = document.createElementNS(SVG_NS, "text");
+          txt.setAttribute("x", pb.x + pb.width / 2);
+          txt.setAttribute("y", pb.y + pb.height / 2);
+          txt.setAttribute("class", "uzmap__label");
+          txt.style.fontSize = Math.max(9, Math.min(opts.fit ? 15 : 17, pb.width / 8)) + "px";
+          txt.textContent = opts.label(it.e);
+          svg.appendChild(txt);
+        } catch (e) {}
+      });
     }, 0);
     return wrap;
   }
@@ -1075,6 +1098,7 @@
       inert: function (e) { return !names[e.type]; },
       value: function (e) { return regionVals[e.type] || 0; },
       max: maxVal,
+      label: function (e) { return names[e.type].replace(" viloyati", "").replace(" Respublikasi", "").replace(" shahri", " sh."); },
       onClick: function (e) { dashState.region = e.type; dashState.district = null; dashState.soha = "all"; dashState.type = "all"; App.refresh(); },
       tooltip: function (e) {
         var rn = names[e.type], list = buildingsOf(rn);
@@ -1242,8 +1266,8 @@
     if (entry && entry.districts && entry.districts.length) {
       dmapWrap = uzMap(entry.districts, {
         fit: true,
-        value: function (d) { return byDistrict[distBase(distName(d.type))] || 1; },
-        max: Math.max.apply(null, Object.keys(byDistrict).length ? Object.keys(byDistrict).map(function (k) { return byDistrict[k]; }) : [1]),
+        color: function (d, i) { return "var(--chart-" + ((i % 6) + 1) + ")"; },
+        label: function (d) { return distName(d.type).replace(" tumani", "").replace(" shahri", ""); },
         selected: function (d) { return !!dashState.district && distBase(distName(d.type)) === distBase(dashState.district); },
         onClick: function (d) {
           var dn = distName(d.type);
