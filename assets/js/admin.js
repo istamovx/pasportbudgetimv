@@ -101,7 +101,7 @@
           { key: "status", label: t("common.status"), render: function (r) { return UI.StatusBadge(r.filled ? "active" : "pending"); } },
           { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
             return h("div", { class: "flex gap-sm" }, [
-              UI.Button({ icon: "eye", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { App.openOrg(r); } }),
+              UI.Button({ icon: "eye", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { App.openOrgDetail(r); } }),
               UI.Button({ icon: "edit", variant: "secondary", size: "sm", title: t("common.edit"), onClick: function () {
                 editDrawer(r.name, [
                   { label: t("admin.col.name"), value: r.name },
@@ -504,6 +504,214 @@
     return wrap;
   }
 
+  /* ============== 6. Tashkilot ma'lumotlari (drill-in) ================== */
+  var odState = { org: null, tab: "umumiy", view: null, assetsPage: { page: 1, per: 15, noun: "qator" } };
+
+  function odBar(pct) {
+    return h("div", { class: "od-bar" }, [
+      h("div", { class: "od-bar__fill", style: "width:" + Math.max(0, Math.min(100, pct)) + "%" }),
+      pct >= 100 ? h("span", { class: "od-bar__check" }, UI.icon("check")) : null
+    ]);
+  }
+  function odRing(pct, size) {
+    size = size || 84;
+    var sw = 8, r = (size - sw) / 2, c = 2 * Math.PI * r, half = size / 2;
+    var wrap = h("div", { class: "od-ring", style: "width:" + size + "px;height:" + size + "px" });
+    wrap.innerHTML =
+      '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + " " + size + '">' +
+      '<circle cx="' + half + '" cy="' + half + '" r="' + r + '" fill="none" stroke="var(--border-secondary)" stroke-width="' + sw + '"/>' +
+      '<circle cx="' + half + '" cy="' + half + '" r="' + r + '" fill="none" stroke="var(--utility-success-500, #17b26a)" stroke-width="' + sw + '" stroke-linecap="round" stroke-dasharray="' + (c * pct / 100) + " " + c + '" transform="rotate(-90 ' + half + " " + half + ')"/>' +
+      "</svg>";
+    wrap.appendChild(h("span", { class: "od-ring__val", text: Math.round(pct) + "%" }));
+    return wrap;
+  }
+  function odPill(tabDef) {
+    if (tabDef.pct != null && tabDef.pill) return [pctPill(tabDef.pct), countPill(tabDef.pill)];
+    if (tabDef.pct != null) return pctPill(tabDef.pct);
+    if (tabDef.pill) return countPill(tabDef.pill);
+    return null;
+    function pctPill(p) { return h("span", { class: "od-pill " + (p >= 100 ? "od-pill--ok" : "od-pill--zero"), text: p + "%" }); }
+    function countPill(txt) { return h("span", { class: "od-pill od-pill--n", text: txt }); }
+  }
+
+  function setDetailOrg(o) { odState.org = o; odState.tab = "umumiy"; odState.view = null; }
+
+  function renderOrgDetail() {
+    if (!odState.org) odState.org = App.orgs()[0];
+    if (odState.view === "staffint") return integrationTable({
+      title: "Xodimlar integratsiyasi",
+      cols: [
+        { key: "cat", label: "Xodim kategoriyasi" },
+        { key: "type", label: "Xodim turi" },
+        { key: "pos", label: "Lavozim", strong: true },
+        { key: "intId", label: "Integratsiya ID", align: "right" },
+        { key: "qty", label: "Shtat miqdorlari", align: "right", render: function (r) { return h("span", { class: "mono text-xs", text: r.qty }); } }
+      ],
+      rows: AD().orgDetail.staffIntegration
+    });
+    if (odState.view === "assets") return integrationTable({
+      title: "Asosiy vositalar", paged: true,
+      cols: [
+        { key: "inv", label: "Inventar raqami", sticky: "left", render: function (r) { return h("span", { class: "mono text-xs", text: r.inv }); } },
+        { key: "name", label: "Asosiy vositalar nomi", strong: true },
+        { key: "fio", label: "F.I.O" },
+        { key: "dept", label: "Bo‘lim" },
+        { key: "hisob", label: "Hisob" },
+        { key: "article", label: "Xarajat moddalari" },
+        { key: "unit", label: "Hisob birligi" },
+        { key: "qty", label: "Miqdor", align: "right", render: function (r) { return Fmt.num(r.qty); } },
+        { key: "sum", label: "Summa", align: "right", render: function (r) { return Fmt.currency(r.sum); } }
+      ],
+      rows: AD().orgDetail.assets
+    });
+    if (odState.view === "transport") return integrationTable({
+      title: "Transport vositalari (YHXBB)",
+      cols: [
+        { key: "plate", label: t("material.plate"), sticky: "left", strong: true },
+        { key: "model", label: t("material.model") },
+        { key: "color", label: t("material.color") },
+        { key: "pass", label: t("material.pass") },
+        { key: "reg", label: t("material.reg"), render: function (r) { return Fmt.date(r.reg); } },
+        { key: "inspection", label: t("material.inspection"), render: function (r) { return Fmt.date(r.inspection); } }
+      ],
+      rows: global.DATA.material.vehicles
+    });
+
+    var od = AD().orgDetail, org = odState.org;
+    var page = h("div", { class: "page" });
+
+    // Sarlavha + amallar
+    page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
+      h("div", { style: "min-width:0" }, [
+        h("h1", { class: "page__title", text: org.name }),
+        h("p", { class: "page__desc", text: "STIR: " + org.stir + (org.type ? " · " + org.type : "") })
+      ]),
+      h("div", { class: "flex gap-md flex-wrap" }, [
+        UI.Button({ label: t("od.open_passport"), variant: "secondary", icon: "eye", onClick: function () { App.openOrg(org); } }),
+        UI.Button({ label: t("common.back"), variant: "secondary", icon: "chevron-left", onClick: function () { App.navigate("aorgs"); } })
+      ])
+    ]));
+
+    // Umumiy to'ldirilganlik hero
+    var pctAll = od.userFields.total ? Math.round(od.userFields.done / od.userFields.total * 100) : 0;
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card od-hero" }, [
+      odRing(pctAll),
+      h("div", { class: "od-hero__meta" }, [
+        h("div", { class: "od-hero__label", text: t("od.overall") }),
+        odBar(pctAll),
+        h("div", { class: "od-hero__count", text: od.userFields.done + " / " + od.userFields.total + " " + t("od.fields") })
+      ])
+    ])));
+
+    // Tablar
+    page.appendChild(UI.Tabs({
+      active: odState.tab,
+      items: od.tabs.map(function (td) {
+        return { id: td.id, label: [h("span", { text: td.label }), odPill(td)], render: function () { odState.tab = td.id; return odTabPanel(td); } };
+      })
+    }));
+    return page;
+  }
+
+  function odTabPanel(td) {
+    var wrap = h("div", { class: "staff-panel" });
+    if (td.sections && td.sections.length) {
+      var done = 0, total = 0;
+      td.sections.forEach(function (s) { done += s.done; total += s.total; });
+      var pct = total ? Math.round(done / total * 100) : (td.pct || 0);
+      wrap.appendChild(h("div", { class: "od-sum" }, [
+        odBar(pct),
+        h("span", { class: "od-sum__label", text: done + " / " + total + " " + t("od.fields_done") })
+      ]));
+      wrap.appendChild(h("div", { class: "od-secs" }, td.sections.map(function (s) {
+        var sp = s.total ? Math.round(s.done / s.total * 100) : 0;
+        return h("div", { class: "od-sec card" }, [
+          h("div", { class: "od-sec__title", text: s.title }),
+          h("div", { class: "od-sec__bar" }, [odBar(sp), s.total === 0 ? h("span", { class: "od-sec__pct", text: "0%" }) : null]),
+          h("div", { class: "od-sec__count", text: s.done + " / " + s.total + " " + t("od.fields") })
+        ]);
+      })));
+    }
+    if (td.integrations && td.integrations.length) {
+      wrap.appendChild(h("div", { class: "od-secs" }, td.integrations.map(function (g) {
+        var clickable = g.loaded && (g.id === "staffint" || g.id === "assets" || g.id === "transport");
+        var card = h(clickable ? "button" : "div", {
+          class: "od-int card" + (g.loaded ? " is-loaded" : "") + (clickable ? " is-clickable" : ""), type: clickable ? "button" : null,
+          onClick: clickable ? function () { odState.view = g.id; App.refresh(); } : null
+        }, [
+          h("div", { class: "od-int__top" }, [
+            h("span", { class: "od-int__dot" }),
+            h("span", { class: "od-int__title", text: g.title }),
+            h("span", { class: "badge badge--dotless " + (g.loaded ? "badge--success" : "badge--neutral"), text: g.loaded ? t("od.loaded") : t("od.not_loaded") })
+          ]),
+          g.updated ? h("div", { class: "od-int__sub", text: t("od.last_update") + ": " + g.updated.slice(0, 10) + (g.rows ? " · " + Fmt.num(g.rows) + " " + t("od.rows") : "") }) : h("div", { class: "od-int__sub", text: t("od.waiting") }),
+          clickable ? h("span", { class: "od-int__chev" }, UI.icon("chevron-right")) : null
+        ]);
+        return card;
+      })));
+    }
+    if ((!td.sections || !td.sections.length) && (!td.integrations || !td.integrations.length)) {
+      wrap.appendChild(UI.EmptyState({ icon: "inbox" }));
+    }
+    return wrap;
+  }
+
+  /* Integratsiya jadvali (drill-in sahifa) */
+  function integrationTable(opts) {
+    var page = h("div", { class: "page" });
+    page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
+      h("div", {}, [
+        h("h1", { class: "page__title", text: opts.title }),
+        h("p", { class: "page__desc flex items-center gap-md flex-wrap" }, [
+          h("span", { class: "od-tag", text: "INTEGRATION" }),
+          h("span", { text: t("common.total") + ": " + Fmt.num(opts.rows.length) + " " + t("od.rows") })
+        ])
+      ]),
+      h("div", { class: "flex gap-md flex-wrap" }, [
+        UI.Button({ label: t("od.excel"), variant: "secondary", icon: "download", onClick: function () { exportCsv(opts); } }),
+        UI.Button({ label: t("common.back"), variant: "secondary", icon: "chevron-left", onClick: function () { odState.view = null; App.refresh(); } })
+      ])
+    ]));
+
+    var results = h("div");
+    page.appendChild(h("div", { class: "section" }, results));
+    function renderRows() {
+      results.innerHTML = "";
+      var rows = opts.rows;
+      var st = odState.assetsPage;
+      var pages = 1;
+      if (opts.paged) {
+        pages = Math.max(1, Math.ceil(rows.length / st.per));
+        if (st.page > pages) st.page = pages;
+        rows = rows.slice((st.page - 1) * st.per, (st.page - 1) * st.per + st.per);
+      }
+      results.appendChild(h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" },
+        UI.DataTable({ sticky: true, columns: opts.cols, rows: rows }))));
+      if (opts.paged) results.appendChild(App.pager(st, opts.rows.length, pages, renderRows));
+    }
+    renderRows();
+
+    page.appendChild(h("div", { class: "od-legend" }, [
+      h("span", { class: "od-legend__item" }, [h("span", { class: "od-legend__dot od-legend__dot--user" }), h("span", { text: t("od.legend_user") })]),
+      h("span", { class: "od-legend__item" }, [h("span", { class: "od-legend__dot od-legend__dot--int" }), h("span", { text: t("od.legend_int") })])
+    ]));
+    return page;
+  }
+
+  function exportCsv(opts) {
+    var head = opts.cols.map(function (c) { return c.label; });
+    var lines = [head.join(";")];
+    opts.rows.forEach(function (r) {
+      lines.push(opts.cols.map(function (c) { var v = r[c.key]; return typeof v === "string" ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(";"));
+    });
+    var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = opts.title.toLowerCase().replace(/\s+/g, "-") + ".csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
   /* ======================= 5. So'rovlar jurnali ========================= */
   var logState = { range: "all", method: "all", q: "", page: 1, per: 20, noun: "yozuv" };
 
@@ -573,6 +781,8 @@
     users: renderUsers,
     classifiers: renderClassifiers,
     konstruktor: renderConstructor,
-    logs: renderLogs
+    logs: renderLogs,
+    orgDetail: renderOrgDetail,
+    setDetailOrg: setDetailOrg
   };
 })(window);
