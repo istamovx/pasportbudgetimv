@@ -1063,17 +1063,49 @@
     ]);
   }
 
+  var matState = { view: "transport" };
+
   function renderMaterial() {
     var m = D.material;
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.material.title", "page.material.desc"));
+
+    // Inventarizatsiyalar statistikasi — 3 ta tanlov kartasi
+    var CARDS = [
+      { id: "transport", icon: "box", label: t("material.transport") },
+      { id: "security", icon: "shield", label: t("material.card.security") },
+      { id: "inventory", icon: "clipboard", label: t("material.card.inventory") }
+    ];
+    var sec = h("div", { class: "section" });
+    sec.appendChild(h("div", { class: "staff-group-heading", text: t("material.inv_stats") }));
+    sec.appendChild(h("div", { class: "inv-cards" }, CARDS.map(function (c) {
+      return h("button", {
+        class: "inv-card" + (matState.view === c.id ? " is-active" : ""), type: "button",
+        "aria-pressed": matState.view === c.id ? "true" : "false",
+        onClick: function () { matState.view = c.id; navigate(current); }
+      }, [
+        h("span", { class: "inv-card__icon" }, UI.icon(c.icon)),
+        h("span", { class: "inv-card__label", text: c.label })
+      ]);
+    })));
+    page.appendChild(sec);
+
+    if (matState.view === "security") page.appendChild(materialSecurityView(m));
+    else if (matState.view === "inventory") page.appendChild(materialInventoryView(m));
+    else page.appendChild(materialTransportView(m));
+    return page;
+  }
+
+  /* Transport vositalari ko'rinishi: analitika + limitlar + UZASBO + YHXBB */
+  function materialTransportView(m) {
+    var wrap = h("div");
 
     // model distribution
     var byModel = {};
     m.vehicles.forEach(function (v) { byModel[v.model] = (byModel[v.model] || 0) + 1; });
     var modelLabels = Object.keys(byModel), modelValues = modelLabels.map(function (k) { return byModel[k]; });
 
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
+    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
       Charts.ChartCard({
         title: t("material.by_model"), subtitle: t("material.transport"), type: "pie",
         data: { labels: modelLabels, values: modelValues },
@@ -1082,14 +1114,65 @@
       transportSummaryCard(m, modelLabels, byModel)
     ])));
 
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
-      cardHead("material.transport", { onEdit: function () {
-        openEdit(t("common.add"), [
-          { label: t("material.model"), value: "" },
-          { label: t("material.plate"), value: "" },
-          { label: t("material.color"), value: "" }
-        ], function (v) { m.vehicles.push({ pass: "—", plate: v[1], model: v[0], color: v[2], reg: D.meta.updatedAt, dept: "—", inspection: "—" }); });
-      } }),
+    // Avtomobil limitlari
+    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, [
+        h("div", {}, h("div", { class: "card__title", text: t("material.limits.title") + " (UZASBO)" })),
+        h("div", { class: "card__head-actions" }, UI.editButton(function () {
+          var r = m.autoLimits[0];
+          openEdit(t("material.limits.title"), [
+            { label: t("material.limits.doc"), value: r.doc },
+            { label: t("material.limits.date"), value: r.date, type: "date" },
+            { label: t("material.limits.limit"), value: r.limit, type: "number" },
+            { label: t("material.limits.available"), value: r.available, type: "number" }
+          ], function (v) { r.doc = v[0]; r.date = v[1]; r.limit = num(v[2]); r.available = num(v[3]); });
+        }))
+      ]),
+      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        columns: [
+          { key: "i", label: "#", render: function (r, i) { return String(m.autoLimits.indexOf(r) + 1); } },
+          { key: "doc", label: t("material.limits.doc"), strong: true },
+          { key: "date", label: t("material.limits.date"), render: function (r) { return Fmt.date(r.date); } },
+          { key: "limit", label: t("material.limits.limit"), align: "right", render: function (r) { return Fmt.num(r.limit); } },
+          { key: "available", label: t("material.limits.available"), align: "right", render: function (r) { return Fmt.num(r.available); } }
+        ],
+        rows: m.autoLimits
+      }))
+    ])));
+
+    // UZASBO — jihozlar ro'yxati (bo'sh bo'lishi mumkin)
+    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, [
+        h("div", {}, h("div", { class: "card__title", text: "UZASBO" })),
+        h("div", { class: "card__head-actions" }, UI.Button({ label: t("material.uzasbo_update"), variant: "primary", icon: "refresh", size: "sm", onClick: function () { navigate(current); } }))
+      ]),
+      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        columns: [
+          { key: "name", label: t("material.uz.name"), strong: true },
+          { key: "model", label: t("material.model") },
+          { key: "year", label: t("material.uz.year") },
+          { key: "group", label: t("material.uz.group") }
+        ],
+        rows: m.uzasbo,
+        empty: { icon: "inbox" }
+      }))
+    ])));
+
+    // YHXBB — transport vositalari ro'yxati
+    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, [
+        h("div", {}, h("div", { class: "card__title", text: "YHXBB" }), h("div", { class: "card__subtitle", text: t("material.transport") })),
+        h("div", { class: "card__head-actions" }, [
+          UI.Button({ label: t("material.yhxbb_update"), variant: "primary", icon: "refresh", size: "sm", onClick: function () { navigate(current); } }),
+          UI.Button({ icon: "plus", variant: "secondary", size: "sm", title: t("common.add"), onClick: function () {
+            openEdit(t("common.add"), [
+              { label: t("material.model"), value: "" },
+              { label: t("material.plate"), value: "" },
+              { label: t("material.color"), value: "" }
+            ], function (v) { m.vehicles.push({ pass: "—", plate: v[1], model: v[0], color: v[2], reg: D.meta.updatedAt, dept: "—", inspection: "—" }); });
+          } })
+        ])
+      ]),
       h("div", { class: "card__body card__body--flush" }, UI.DataTable({
         sticky: true,
         columns: [
@@ -1114,13 +1197,92 @@
         rows: m.vehicles
       }))
     ])));
+    return wrap;
+  }
 
-    // Auto limits (empty)
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
-      cardHead("material.auto_limits", {}),
-      h("div", { class: "card__body card__body--flush" }, UI.EmptyState({ icon: "zap" }))
+  /* Qo'riqlash xizmati xarajatlari ko'rinishi */
+  function materialSecurityView(m) {
+    var wrap = h("div");
+    var totalYearly = m.security.reduce(function (a, r) { return a + r.yearly; }, 0);
+    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:3;--cols-md:1" }, [
+      UI.KpiCard({ label: t("material.sec.yearly") + " (" + m.security[0].year + ")", value: Fmt.currency(m.security[0].yearly), icon: "shield" }),
+      UI.KpiCard({ label: t("material.sec.monthly") + " (" + m.security[0].year + ")", value: Fmt.currency(m.security[0].monthly), icon: "wallet" }),
+      UI.KpiCard({ label: t("common.total"), value: Fmt.currency(totalYearly), icon: "chart" })
     ])));
-    return page;
+    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, [
+        h("div", {}, h("div", { class: "card__title", text: t("material.card.security") })),
+        h("div", { class: "card__head-actions" }, UI.Button({ icon: "plus", variant: "secondary", size: "sm", title: t("common.add"), onClick: function () {
+          openEdit(t("common.add"), [
+            { label: t("material.sec.year"), value: new Date().getFullYear(), type: "number" },
+            { label: t("material.sec.org"), value: "" },
+            { label: t("material.sec.contract"), value: "" },
+            { label: t("material.sec.monthly"), value: 0, type: "number" }
+          ], function (v) { m.security.unshift({ year: num(v[0]), org: v[1], contract: v[2], monthly: num(v[3]), yearly: num(v[3]) * 12 }); });
+        } }))
+      ]),
+      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        sticky: true,
+        columns: [
+          { key: "year", label: t("material.sec.year"), strong: true },
+          { key: "org", label: t("material.sec.org") },
+          { key: "contract", label: t("material.sec.contract") },
+          { key: "monthly", label: t("material.sec.monthly"), align: "right", render: function (r) { return Fmt.currency(r.monthly); } },
+          { key: "yearly", label: t("material.sec.yearly"), align: "right", render: function (r) { return Fmt.currency(r.yearly); } },
+          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+            return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
+              openEdit(String(r.year), [
+                { label: t("material.sec.org"), value: r.org },
+                { label: t("material.sec.contract"), value: r.contract },
+                { label: t("material.sec.monthly"), value: r.monthly, type: "number" }
+              ], function (v) { r.org = v[0]; r.contract = v[1]; r.monthly = num(v[2]); r.yearly = r.monthly * 12; });
+            } });
+          } }
+        ],
+        rows: m.security
+      }))
+    ])));
+    return wrap;
+  }
+
+  /* Inventarizatsiya hisoboti ko'rinishi */
+  function materialInventoryView(m) {
+    var wrap = h("div");
+    wrap.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, [
+        h("div", {}, h("div", { class: "card__title", text: t("material.card.inventory") })),
+        h("div", { class: "card__head-actions" }, UI.Button({ icon: "plus", variant: "secondary", size: "sm", title: t("common.add"), onClick: function () {
+          openEdit(t("common.add"), [
+            { label: t("material.inv.date"), value: D.meta.updatedAt, type: "date" },
+            { label: t("material.inv.number"), value: "" },
+            { label: t("material.inv.type"), value: "" },
+            { label: t("material.inv.items"), value: 0, type: "number" }
+          ], function (v) { m.inventory.unshift({ date: v[0], number: v[1], type: v[2], items: num(v[3]), shortage: 0, status: "new" }); });
+        } }))
+      ]),
+      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        sticky: true,
+        columns: [
+          { key: "number", label: t("material.inv.number"), sticky: "left", strong: true },
+          { key: "date", label: t("material.inv.date"), render: function (r) { return Fmt.date(r.date); } },
+          { key: "type", label: t("material.inv.type") },
+          { key: "items", label: t("material.inv.items"), align: "right", render: function (r) { return Fmt.num(r.items); } },
+          { key: "shortage", label: t("material.inv.shortage"), align: "right", render: function (r) { return Fmt.num(r.shortage); } },
+          { key: "status", label: t("common.status"), render: function (r) { return UI.StatusBadge(r.status); } },
+          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+            return UI.Button({ icon: "edit", variant: "tertiary", size: "sm", title: t("common.edit"), onClick: function () {
+              openEdit(r.number, [
+                { label: t("material.inv.type"), value: r.type },
+                { label: t("material.inv.items"), value: r.items, type: "number" },
+                { label: t("material.inv.shortage"), value: r.shortage, type: "number" }
+              ], function (v) { r.type = v[0]; r.items = num(v[1]); r.shortage = num(v[2]); });
+            } });
+          } }
+        ],
+        rows: m.inventory
+      }))
+    ])));
+    return wrap;
   }
 
   /* --- Utilities (empty) --- */

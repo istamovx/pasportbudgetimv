@@ -197,7 +197,22 @@
         { pass: "AAG 3253903", plate: "01 097 RLA", model: "Volkswagen Caddy 5", color: "Oq", reg: "2024-01-10", dept: "3-TRO‘ va IOB (Sirg‘ali)", inspection: "2027-03-04" },
         { pass: "AAG 4080335", plate: "01 365 FMA", model: "Damas", color: "Oq", reg: "2024-05-29", dept: "4-TRO‘G (Uzbum)", inspection: "2027-03-04" }
       ],
-      autoLimits: null
+      /* Avtomobil limitlari (UZASBO hujjati) */
+      autoLimits: [
+        { doc: "0", date: "2026-06-19", limit: 5, available: 5 }
+      ],
+      /* UZASBO jihozlar ro'yxati — hozircha bo'sh */
+      uzasbo: [],
+      /* Qo'riqlash xizmati xarajatlari uchun ajratilayotgan mablag'lar */
+      security: [
+        { year: 2026, org: "IIV Qo‘riqlash boshqarmasi Yunusobod bo‘limi", contract: "QX-2026/018", monthly: 5200000, yearly: 62400000 },
+        { year: 2025, org: "IIV Qo‘riqlash boshqarmasi Yunusobod bo‘limi", contract: "QX-2025/011", monthly: 4700000, yearly: 56400000 }
+      ],
+      /* Inventarizatsiya hisobotlari */
+      inventory: [
+        { date: "2025-12-15", number: "INV-2025-01", type: "Yillik inventarizatsiya", items: 1284, shortage: 0, status: "closed" },
+        { date: "2026-06-30", number: "INV-2026-01", type: "Yarim yillik inventarizatsiya", items: 1291, shortage: 2, status: "active" }
+      ]
     },
 
     /* 5. Kommunal xarajatlar — bo'sh (Elektr/Gaz: No data) */
