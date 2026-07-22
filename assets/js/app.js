@@ -107,7 +107,7 @@
   var adminCtx = { org: null }; // admin tanlagan tashkilot (pasportga kirganda)
 
   var ADMIN_SECTIONS = {
-    adashboard: function () { return renderAdminDashboard(); },
+    adashboard: function () { return global.AdminPages.dashboard(); },
     aorgs: function () { return renderAdminOrgs(); },
     aorgmanage: function () { return global.AdminPages.orgManage(); },
     ausers: function () { return global.AdminPages.users(); },
@@ -1771,8 +1771,8 @@
       h("div", { class: "adm-kpi__meta" }, [
         h("div", { class: "adm-kpi__label", text: label }),
         h("div", { class: "adm-kpi__row" }, [
-          h("span", { class: "adm-kpi__value", text: Fmt.num(value) }),
-          h("span", { class: "adm-kpi__pct adm-kpi__pct--" + (tone || "brand"), text: Fmt.num(pct, pct % 1 ? 2 : 0) + " %" })
+          h("span", { class: "adm-kpi__value", text: typeof value === "number" ? Fmt.num(value) : String(value) }),
+          pct == null ? null : h("span", { class: "adm-kpi__pct adm-kpi__pct--" + (tone || "brand"), text: Fmt.num(pct, pct % 1 ? 2 : 0) + " %" })
         ])
       ])
     ]);
@@ -2219,7 +2219,9 @@
     refresh: function () { navigate(current); },
     openOrg: adminOpenOrg,
     openOrgDetail: function (o) { global.AdminPages.setDetailOrg(o); navigate("aorgdetail"); },
+    renderSection: function (id) { return SECTIONS[id] ? SECTIONS[id]() : null; }, // org bo'limini boshqa sahifa ichiga joylash uchun
     orgs: getMockOrgs,
-    pager: orgListPager
+    pager: orgListPager,
+    kpi: admKpi
   };
 })(window);

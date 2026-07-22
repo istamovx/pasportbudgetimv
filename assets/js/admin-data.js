@@ -357,7 +357,59 @@
     assets: ASSETS
   };
 
+  /* ---- Xarita: map type -> viloyat nomi ---- */
+  var MAP_REGION_NAMES = {
+    karakalpak: "Qoraqalpog‘iston Respublikasi",
+    khwarezm: "Xorazm viloyati",
+    navoi: "Navoiy viloyati",
+    bukhara: "Buxoro viloyati",
+    samarqand: "Samarqand viloyati",
+    qarshi: "Qashqadaryo viloyati",
+    surxon: "Surxondaryo viloyati",
+    jizzakh: "Jizzax viloyati",
+    sirdaryo: "Sirdaryo viloyati",
+    toshkent: "Toshkent viloyati",
+    toshkent_sh: "Toshkent shahri",
+    namangan: "Namangan viloyati",
+    fergana: "Farg‘ona viloyati",
+    andijan: "Andijon viloyati"
+  };
+
+  /* ---- Binolar reestri (hudud/soha/tur kesimida, deterministik mock) ---- */
+  var B_TYPES = ["Poliklinika", "Davolash korpusi", "Ma’muriy bino", "Omborxona", "Garaj", "Qozonxona", "O‘likxona (patologiya)", "Suzish havzasi (basseyn)", "Oshxona bloki", "Laboratoriya"];
+  var B_SOHA = ["Sog‘liqni saqlash", "Umumiy ta’lim", "Maktabgacha ta’lim", "Madaniyat", "Sport"];
+  var BUILDINGS = [];
+  Object.keys(MAP_REGION_NAMES).forEach(function (key, ri) {
+    var region = MAP_REGION_NAMES[key];
+    var districts = (global.UZB_REGIONS && global.UZB_REGIONS[region]) || ["Markaziy tuman"];
+    var count = 14 + ((ri * 7) % 12); // 14..25 ta bino
+    for (var i = 0; i < count; i++) {
+      var soha = B_SOHA[(ri + i) % B_SOHA.length];
+      var type = B_TYPES[(ri * 3 + i) % B_TYPES.length];
+      var built = 1965 + ((i * 13 + ri * 7) % 58);            // 1965..2022
+      var ren = built + 8 + ((i * 5 + ri) % 28);
+      if (ren > 2025) ren = null;                              // hali ta'mirlanmagan
+      BUILDINGS.push({
+        region: region, regionKey: key,
+        district: districts[(i * 3 + ri) % districts.length],
+        org: soha === "Sog‘liqni saqlash"
+          ? (i % 3 === 0 ? region.replace(" viloyati", "").replace(" Respublikasi", "") + " ko‘p tarmoqli tibbiyot markazi" : (100 + i) + "-oilaviy poliklinika")
+          : soha === "Umumiy ta’lim" ? "“" + (100 + i * 2 + ri) + "-sonli umumiy o‘rta ta’lim maktabi” DM"
+          : soha === "Maktabgacha ta’lim" ? (50 + i) + "-sonli MTT"
+          : soha === "Madaniyat" ? "Tuman madaniyat uyi" : "Bolalar-o‘smirlar sport maktabi",
+        soha: soha, type: type,
+        area: 250 + ((i * 173 + ri * 97) % 4800),              // m²
+        built: built, renovated: ren,
+        status: ren && ren >= 2018 ? "good" : "repair"
+      });
+    }
+  });
+
   global.ADMIN_DATA = {
+    mapRegionNames: MAP_REGION_NAMES,
+    buildings: BUILDINGS,
+    buildingTypes: B_TYPES,
+    buildingSoha: B_SOHA,
     orgDetail: ORG_DETAIL,
     classifiers: CLASSIFIERS,
     users: USERS,
