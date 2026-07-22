@@ -38,15 +38,21 @@
   // SSO
   document.getElementById("sso-btn").addEventListener("click", enter);
 
-  // Toggle password form
+  // Toggle password form (silliq kirish animatsiyasi bilan)
   var actions = document.getElementById("actions");
   var form = document.getElementById("pwd-form");
+  function reveal(el) {
+    el.classList.remove("hidden");
+    el.classList.remove("anim-in");
+    void el.offsetWidth; // animatsiyani qayta ishga tushirish
+    el.classList.add("anim-in");
+  }
   document.getElementById("pwd-toggle").addEventListener("click", function () {
-    actions.classList.add("hidden"); form.classList.remove("hidden");
+    actions.classList.add("hidden"); reveal(form);
     var l = document.getElementById("login"); if (l) l.focus();
   });
   document.getElementById("pwd-back").addEventListener("click", function () {
-    form.classList.add("hidden"); actions.classList.remove("hidden");
+    form.classList.add("hidden"); reveal(actions);
   });
   form.addEventListener("submit", function (e) { e.preventDefault(); enter(); });
 })();
