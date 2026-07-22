@@ -619,11 +619,14 @@
     var rightCol = h("div", { class: "odx-col" });
 
     // Rekvizitlar
+    // Rekvizitlar — hero'da chiqqan STIR/kod/yil/holat BU YERDA TAKRORLANMAYDI,
+    // faqat qo'shimcha rekvizitlar ko'rsatiladi
     leftCol.appendChild(infoCard("clipboard", t("odx.rekvizit"), [
-      ["STIR", org.stir], ["OKED", "72110"], [t("odx.org_code"), "G71"],
-      [t("material.type"), "Davlat muassasasi"], [t("odx.ownership"), "Davlat mulki"],
-      [t("odx.founded"), "25.04.2000"],
-      [t("common.status"), h("span", { class: "badge badge--dotless badge--success", text: t("st.active", "Faol") })]
+      [t("g.oked"), "72110"],
+      [t("g.cadastre_date"), "14.12.2022"],
+      [t("g.doc_organ"), "Prezident Farmoni — № 5130, 27.05.2021"],
+      [t("g.stat_cert"), "Mavjud"],
+      [t("g.rental"), "Ijarada turmaydi"]
     ], true));
 
     // Rahbar va aloqa
@@ -699,14 +702,19 @@
       } catch (e) {}
     }, 60);
 
-    // To'ldirilganlik gauge
-    rightCol.appendChild(h("div", { class: "card od-hero" }, [
-      odRing(pctAll),
-      h("div", { class: "od-hero__meta" }, [
-        h("div", { class: "od-hero__label", text: t("od.overall") }),
-        odBar(pctAll),
-        h("div", { class: "od-hero__count", text: od.userFields.done + " / " + od.userFields.total + " " + t("od.fields") })
-      ])
+    // To'ldirilganlik — bo'limlar kesimida (KPI dagi umumiy foizni takrorlamaydi)
+    rightCol.appendChild(h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, h("div", {}, h("div", { class: "card__title", text: t("odx.fill_by_tab") }))),
+      h("div", { class: "card__body odx-fillist" }, od.tabs.map(function (td) {
+        var pct = td.pct != null ? td.pct : (td.integrations
+          ? Math.round(td.integrations.filter(function (g) { return g.loaded; }).length / td.integrations.length * 100)
+          : 0);
+        return h("div", { class: "odx-fillist__row" }, [
+          h("span", { class: "odx-fillist__name", text: td.label }),
+          odBar(pct),
+          h("span", { class: "odx-fillist__pct", text: pct + "%" })
+        ]);
+      }))
     ]));
 
     // O'zgarishlar tarixi
