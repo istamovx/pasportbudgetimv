@@ -101,6 +101,49 @@
     { id: "health", icon: "heart" }
   ];
 
+  /* ---- Rollar: org (tashkilot) / admin (barcha tashkilotlar) ---- */
+  var ROLE = "org";
+  try { ROLE = localStorage.getItem("pb.role") === "admin" ? "admin" : "org"; } catch (e) {}
+  var adminCtx = { org: null }; // admin tanlagan tashkilot (pasportga kirganda)
+
+  var ADMIN_SECTIONS = {
+    adashboard: function () { return renderAdminDashboard(); },
+    aorgs: function () { return renderAdminOrgs(); }
+  };
+  var ADMIN_NAV = [
+    { id: "adashboard", icon: "grid" },
+    { id: "aorgs", icon: "building" }
+  ];
+
+  function isAdminHome() { return ROLE === "admin" && !adminCtx.org; }
+  function currentSections() { return isAdminHome() ? ADMIN_SECTIONS : SECTIONS; }
+  function currentNavItems() { return isAdminHome() ? ADMIN_NAV : NAV; }
+
+  function rebuildShell(startId) {
+    var app = document.getElementById("app");
+    app.innerHTML = "";
+    navEls = {};
+    buildShell();
+    initCollapse();
+    navigate(startId);
+  }
+
+  function setRole(r) {
+    ROLE = r === "admin" ? "admin" : "org";
+    try { localStorage.setItem("pb.role", ROLE); } catch (e) {}
+    adminCtx.org = null;
+    rebuildShell(ROLE === "admin" ? "adashboard" : "general");
+  }
+
+  function adminOpenOrg(o) {
+    adminCtx.org = o;
+    rebuildShell("general");
+  }
+  function adminBackToList() {
+    adminCtx.org = null;
+    rebuildShell("aorgs");
+  }
+
   function pageHead(titleKey, descKey, actions) {
     var head = h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
       h("div", {}, [
@@ -1647,13 +1690,14 @@
   var mainEl, navEls = {};
 
   function navigate(id) {
-    if (!SECTIONS[id]) id = "general";
+    var reg = currentSections();
+    if (!reg[id]) id = isAdminHome() ? "adashboard" : "general";
     current = id;
     try { localStorage.setItem("pb.section", id); } catch (e) {}
     Charts.destroyAll();
     if (locationMap) { try { locationMap.remove(); } catch (e) {} locationMap = null; }
     mainEl.innerHTML = "";
-    var node = SECTIONS[id]();
+    var node = reg[id]();
     mainEl.appendChild(node);
     mountSparklines(node);
     // update nav active + header title
@@ -1663,14 +1707,194 @@
     mainEl.scrollTop = 0; window.scrollTo(0, 0);
   }
 
+  /* ------------------------- Admin sahifalari --------------------------- */
+
+  /* Bosh sahifa — hozircha bo'sh; kontent barcha sahifalar tayyor bo'lgach belgilanadi */
+  function renderAdminDashboard() {
+    var page = h("div", { class: "page" });
+    page.appendChild(pageHead("page.adashboard.title", "page.adashboard.desc"));
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" },
+      h("div", { class: "card__body" }, UI.EmptyState({
+        icon: "grid",
+        title: t("admin.dash_empty_title"),
+        desc: t("admin.dash_empty_desc")
+      })))));
+    return page;
+  }
+
+  /* Ma'lumotlar — barcha tashkilotlar kesimida to'ldirilganlik */
+  var admOrgsState = { q: "", region: "all", type: "all", page: 1, per: 20 };
+  function renderAdminOrgs() {
+    var orgs = getMockOrgs();
+    var page = h("div", { class: "page" });
+    page.appendChild(pageHead("page.aorgs.title", "page.aorgs.desc", [
+      UI.Button({ label: t("admin.full_report"), variant: "primary", icon: "download", onClick: function () { exportOrgsCsv(orgs, "hisobot-to-liq"); } })
+    ]));
+
+    // KPI kartalar
+    var total = orgs.length;
+    var filled = orgs.filter(function (o) { return o.filled; }).length;
+    var progress = total - filled;
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:3;--cols-md:1" }, [
+      admKpi("building", t("admin.kpi.orgs"), total, 100, ""),
+      admKpi("check", t("admin.kpi.filled"), filled, Math.round(filled / total * 10000) / 100, "ok"),
+      admKpi("refresh", t("admin.kpi.progress"), progress, Math.round(progress / total * 10000) / 100, "warn")
+    ])));
+
+    // Tablar: Tashkilotlar / Sohalar / Hududlar
+    page.appendChild(h("div", { class: "section" }, UI.Tabs({
+      items: [
+        { id: "orgs", label: t("admin.tab.orgs"), render: function () { return admOrgsTable(orgs); } },
+        { id: "fields", label: t("admin.tab.fields"), render: function () { return admGroupTable(orgs, "type", t("admin.filter.type")); } },
+        { id: "regions", label: t("admin.tab.regions"), render: function () { return admGroupTable(orgs, "region", t("admin.filter.region")); } }
+      ]
+    })));
+    return page;
+  }
+
+  function admKpi(icon, label, value, pct, tone) {
+    return h("div", { class: "adm-kpi" }, [
+      h("div", { class: "adm-kpi__icon adm-kpi__icon--" + (tone || "brand") }, UI.icon(icon)),
+      h("div", { class: "adm-kpi__meta" }, [
+        h("div", { class: "adm-kpi__label", text: label }),
+        h("div", { class: "adm-kpi__row" }, [
+          h("span", { class: "adm-kpi__value", text: Fmt.num(value) }),
+          h("span", { class: "adm-kpi__pct adm-kpi__pct--" + (tone || "brand"), text: Fmt.num(pct, pct % 1 ? 2 : 0) + " %" })
+        ])
+      ])
+    ]);
+  }
+
+  function admOrgsTable(orgs) {
+    var wrap = h("div", { class: "staff-panel" });
+    var results = h("div");
+
+    var searchInput = h("input", { class: "input org-search__input", type: "text", placeholder: t("org.search_ph"), value: admOrgsState.q });
+    searchInput.addEventListener("input", function () { admOrgsState.q = searchInput.value.trim().toLowerCase(); admOrgsState.page = 1; renderResults(); });
+    var searchBar = h("div", { class: "org-search adm-search" }, [h("span", { class: "org-search__icon" }, UI.icon("search")), searchInput]);
+
+    var regionSel = UI.Select({
+      value: admOrgsState.region,
+      options: [{ value: "all", label: t("admin.filter.region") + ": " + t("staff.filter.all") }].concat((global.UZB_VILOYATLAR || []).map(function (r) { return { value: r, label: r }; })),
+      onChange: function (v) { admOrgsState.region = v; admOrgsState.page = 1; renderResults(); }
+    });
+    regionSel.classList.add("adm-filter");
+
+    var toolbar = h("div", { class: "adm-toolbar" }, [
+      searchBar, regionSel,
+      h("span", { class: "header__spacer" }),
+      UI.Button({ label: t("admin.excel"), variant: "secondary", size: "sm", icon: "download", onClick: function () { exportOrgsCsv(filtered(), "tashkilotlar"); } })
+    ]);
+    wrap.appendChild(toolbar);
+    wrap.appendChild(results);
+
+    function filtered() {
+      return getMockOrgs().filter(function (o) {
+        if (admOrgsState.region !== "all" && o.region !== admOrgsState.region) return false;
+        if (admOrgsState.q && o.name.toLowerCase().indexOf(admOrgsState.q) < 0 && o.stir.indexOf(admOrgsState.q) < 0) return false;
+        return true;
+      });
+    }
+    function renderResults() {
+      results.innerHTML = "";
+      var list = filtered();
+      var total = list.length, pages = Math.max(1, Math.ceil(total / admOrgsState.per));
+      if (admOrgsState.page > pages) admOrgsState.page = pages;
+      var start = (admOrgsState.page - 1) * admOrgsState.per;
+      var items = list.slice(start, start + admOrgsState.per);
+      if (!items.length) { results.appendChild(UI.EmptyState({ icon: "search", title: t("common.not_found") })); return; }
+      results.appendChild(h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        sticky: true,
+        columns: [
+          { key: "n", label: "T/R", render: function (r) { return String(getMockOrgs().indexOf(r) + 1); } },
+          { key: "name", label: t("admin.col.name"), sticky: "left", strong: true },
+          { key: "stir", label: "STIR" },
+          { key: "menusTotal", label: t("admin.col.menus"), align: "right" },
+          { key: "menusInProgress", label: t("admin.col.inprogress"), align: "right" },
+          { key: "menusUnfilled", label: t("admin.col.unfilled"), align: "right" },
+          { key: "fillPct", label: t("admin.col.pct"), align: "right", render: function (r) { return Fmt.num(r.fillPct, 2) + " %"; } },
+          { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+            return UI.Button({ icon: "eye", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { adminOpenOrg(r); } });
+          } }
+        ],
+        rows: items
+      }))));
+      results.appendChild(orgListPager(admOrgsState, total, pages, renderResults));
+    }
+    renderResults();
+    return wrap;
+  }
+
+  /* Soha/Hudud kesimidagi jamlanma jadval */
+  function admGroupTable(orgs, field, colLabel) {
+    var map = {};
+    orgs.forEach(function (o) {
+      var k = o[field] || "—";
+      if (!map[k]) map[k] = { key: k, count: 0, filled: 0, pctSum: 0 };
+      map[k].count++; if (o.filled) map[k].filled++; map[k].pctSum += o.fillPct;
+    });
+    var rows = Object.keys(map).sort().map(function (k) { return map[k]; });
+    return h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+      sticky: true,
+      columns: [
+        { key: "key", label: colLabel, sticky: "left", strong: true },
+        { key: "count", label: t("admin.col.orgs"), align: "right", render: function (r) { return Fmt.num(r.count); } },
+        { key: "filled", label: t("admin.kpi.filled"), align: "right", render: function (r) { return Fmt.num(r.filled); } },
+        { key: "progress", label: t("admin.kpi.progress"), align: "right", render: function (r) { return Fmt.num(r.count - r.filled); } },
+        { key: "pct", label: t("admin.col.pct"), align: "right", render: function (r) { return Fmt.num(r.pctSum / r.count, 2) + " %"; } }
+      ],
+      rows: rows
+    })));
+  }
+
+  /* Umumiy pager (Ma'lumotlar jadvali uchun) */
+  function orgListPager(state, total, pages, rerender) {
+    var wrap = h("div", { class: "org-pager" });
+    var nav = h("div", { class: "org-pager__nav" });
+    function btn(label, page, opts) {
+      opts = opts || {};
+      return h("button", { class: "org-page" + (opts.active ? " is-active" : "") + (opts.dis ? " is-dis" : ""), type: "button", disabled: opts.dis,
+        onClick: function () { if (!opts.dis && page) { state.page = page; rerender(); } } }, label);
+    }
+    nav.appendChild(btn(UI.icon("chevron-left"), state.page - 1, { dis: state.page <= 1 }));
+    var win = [];
+    for (var p = 1; p <= pages; p++) { if (p === 1 || p === pages || Math.abs(p - state.page) <= 1) win.push(p); else if (win[win.length - 1] !== "…") win.push("…"); }
+    win.forEach(function (p) { nav.appendChild(p === "…" ? h("span", { class: "org-page__ell", text: "…" }) : btn(String(p), p, { active: p === state.page })); });
+    nav.appendChild(btn(UI.icon("chevron-right"), state.page + 1, { dis: state.page >= pages }));
+    wrap.appendChild(h("div", { class: "org-pager__info", text: Fmt.num(total) + " ta tashkilot" }));
+    wrap.appendChild(nav);
+    return wrap;
+  }
+
+  /* CSV eksport (Excel ochadi) */
+  function exportOrgsCsv(list, name) {
+    var head = ["T/R", t("admin.col.name"), "STIR", t("admin.filter.region"), t("admin.col.menus"), t("admin.col.inprogress"), t("admin.col.unfilled"), t("admin.col.pct")];
+    var lines = [head.join(";")];
+    list.forEach(function (o, i) {
+      lines.push([i + 1, '"' + o.name.replace(/"/g, '""') + '"', o.stir, o.region, o.menusTotal, o.menusInProgress, o.menusUnfilled, o.fillPct + "%"].join(";"));
+    });
+    var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name + ".csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
   /* ----------------------------- Shell ---------------------------------- */
   function buildShell() {
     var app = document.getElementById("app");
 
     // Sidebar
     var nav = h("nav", { class: "sidebar__nav" });
+    if (ROLE === "admin" && adminCtx.org) {
+      nav.appendChild(h("button", { class: "nav-item nav-item--back", type: "button", dataset: { label: t("admin.back") }, onClick: adminBackToList }, [
+        h("span", { class: "nav-item__icon" }, UI.icon("chevron-left")),
+        h("span", { class: "nav-item__label", text: t("admin.back") })
+      ]));
+    }
     nav.appendChild(h("div", { class: "sidebar__nav-label", "data-i18n": "nav.menu", text: t("nav.menu") }));
-    NAV.forEach(function (item) {
+    currentNavItems().forEach(function (item) {
       var el = h("button", { class: "nav-item", type: "button", dataset: { label: t("nav." + item.id) }, onClick: function () { navigate(item.id); } }, [
         h("span", { class: "nav-item__icon" }, UI.icon(item.icon)),
         h("span", { class: "nav-item__label", "data-i18n": "nav." + item.id, text: t("nav." + item.id) })
@@ -1687,7 +1911,7 @@
         h("img", { class: "sidebar__logo sidebar__logo--symbol", src: "assets/img/Symbol.svg", alt: t("app.name"), width: "34", height: "34" }),
         h("div", { class: "sidebar__brand-text" }, [
           h("div", { class: "sidebar__brand-name", "data-i18n": "app.name", text: t("app.name") }),
-          h("div", { class: "sidebar__brand-sub", "data-i18n": "app.subtitle", text: t("app.subtitle") })
+          h("div", { class: "sidebar__brand-sub", text: ROLE === "admin" ? t("app.subtitle_admin") : t("app.subtitle") })
         ]),
         collapseBtn
       ]),
@@ -1716,6 +1940,24 @@
   }
 
   function orgChip() {
+    if (ROLE === "admin" && adminCtx.org) {
+      return h("div", { class: "org-chip flex items-center gap-md" }, [
+        h("div", { class: "avatar", text: "TA" }),
+        h("div", { class: "org-chip__text", style: "min-width:0" }, [
+          h("div", { class: "font-medium", style: "overflow:hidden;text-overflow:ellipsis;white-space:nowrap", text: adminCtx.org.name, title: adminCtx.org.name }),
+          h("div", { class: "text-tertiary text-xs", text: "STIR: " + adminCtx.org.stir })
+        ])
+      ]);
+    }
+    if (ROLE === "admin") {
+      return h("div", { class: "org-chip flex items-center gap-md" }, [
+        h("div", { class: "avatar", text: "AD" }),
+        h("div", { class: "org-chip__text", style: "min-width:0" }, [
+          h("div", { class: "font-medium", style: "overflow:hidden;text-overflow:ellipsis;white-space:nowrap", text: t("admin.all_orgs") }),
+          h("div", { class: "text-tertiary text-xs", text: Fmt.num(getMockOrgs().length) + " ta tashkilot" })
+        ])
+      ]);
+    }
     return h("div", { class: "org-chip flex items-center gap-md" }, [
       h("div", { class: "avatar", text: "TT" }),
       h("div", { class: "org-chip__text", style: "min-width:0" }, [
@@ -1738,12 +1980,23 @@
       "Ixtisoslashtirilgan markazlar, shifoxonalar va koykali dispanserlar",
       "Tuman markaziy shifoxonasi"
     ];
+    var regions = global.UZB_VILOYATLAR || [];
     var list = [{ name: "“" + t("app.org").toUpperCase() + "” DAVLAT MUASSASASI", stir: "201190732", type: types[5], current: true }];
     for (var i = 1; i <= 239; i++) {
       var n = 100 + i;
       var stir = "2" + String(100000000 + (i * 7919) % 899999999);
       list.push({ name: "“" + n + "-SONLI UMUMIY O‘RTA TA’LIM MAKTABI” DAVLAT MUASSASASI", stir: stir.slice(0, 9), type: types[i % types.length] });
     }
+    // Admin ko'rinishi uchun determinstik to'ldirilganlik ma'lumotlari
+    list.forEach(function (o, i) {
+      o.region = regions.length ? regions[i % regions.length] : "—";
+      o.menusTotal = 2 + (i % 3);                               // 2..4
+      o.menusInProgress = o.menusTotal - (i % 9 === 0 ? 1 : 0); // ~11% da 1 tasi qolgan
+      o.menusUnfilled = o.menusTotal - o.menusInProgress;
+      o.fillPct = i % 9 === 0 ? 80 + (i % 17) : 92 + (i % 9);   // 80..100
+      if (o.fillPct > 100) o.fillPct = 100;
+      o.filled = i % 9 !== 0;
+    });
     _mockOrgs = list;
     return list;
   }
@@ -1833,13 +2086,29 @@
           h("div", { class: "profile-panel__stir", text: "STIR: " + stir })
         ])
       ]),
+      h("div", { class: "profile-panel__roles" }, [
+        h("div", { class: "profile-panel__roles-label", text: t("role.label") }),
+        roleItem("org", "building", t("role.org")),
+        roleItem("admin", "shield", t("role.admin"))
+      ]),
       h("div", { class: "profile-panel__actions" }, [
-        UI.Button({ label: "Tashkilot tanlash", variant: "secondary", icon: "switch", onClick: function () { panel.classList.remove("is-open"); openOrgPicker(); } }),
+        ROLE === "org" ? UI.Button({ label: "Tashkilot tanlash", variant: "secondary", icon: "switch", onClick: function () { panel.classList.remove("is-open"); openOrgPicker(); } }) : null,
         h("button", { class: "btn btn--danger-ghost", type: "button", onClick: function () { window.location.href = "login.html"; } }, [
           UI.icon("logout"), h("span", { text: "Tizimdan chiqish" })
         ])
       ])
     ]);
+    function roleItem(r, icon, label) {
+      var active = ROLE === r;
+      return h("button", {
+        class: "role-item" + (active ? " is-active" : ""), type: "button",
+        onClick: function () { if (!active) { panel.classList.remove("is-open"); setRole(r); } }
+      }, [
+        h("span", { class: "role-item__icon" }, UI.icon(icon)),
+        h("span", { class: "role-item__label", text: label }),
+        active ? UI.icon("check", "role-item__check") : null
+      ]);
+    }
     var wrap = h("div", { class: "menu profile-menu" }, [trigger, panel]);
     trigger.addEventListener("click", function (e) { e.stopPropagation(); panel.classList.toggle("is-open"); });
     document.addEventListener("click", function () { panel.classList.remove("is-open"); });
