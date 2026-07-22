@@ -61,6 +61,8 @@ ul, ol { list-style: none; padding: 0; }
 .items-center { align-items: center; }
 .items-start { align-items: flex-start; }
 .justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.gap-sm { gap: var(--spacing-sm); }
 .justify-center { justify-content: center; }
 .flex-wrap { flex-wrap: wrap; }
 .flex-1 { flex: 1 1 0%; }
