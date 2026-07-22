@@ -401,6 +401,49 @@
 @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
 .mb-md { margin-bottom: var(--spacing-md); }
 
+/* ---------- Admin: KPI, toolbar, rol almashtirgich ---------- */
+.adm-kpi {
+  display: flex; align-items: center; gap: var(--spacing-lg);
+  background: var(--bg-primary); border: 1px solid var(--border-secondary); border-radius: var(--radius-lg);
+  padding: var(--spacing-xl) var(--spacing-2xl); box-shadow: var(--shadow-xs); min-width: 0;
+}
+.adm-kpi__icon { width: 44px; height: 44px; border-radius: var(--radius-md); display: grid; place-items: center; flex: none; }
+.adm-kpi__icon .icon { width: 22px; height: 22px; }
+.adm-kpi__icon--brand { background: var(--utility-brand-50); color: var(--utility-brand-600); }
+.adm-kpi__icon--ok { background: var(--bg-success-primary); color: var(--utility-success-600); }
+.adm-kpi__icon--warn { background: var(--bg-warning-primary); color: var(--utility-warning-600); }
+.adm-kpi__meta { min-width: 0; }
+.adm-kpi__label { font-size: var(--text-sm); color: var(--text-tertiary); overflow-wrap: anywhere; }
+.adm-kpi__row { display: flex; align-items: baseline; gap: var(--spacing-md); flex-wrap: wrap; }
+.adm-kpi__value { font-size: var(--display-xs); font-weight: var(--font-weight-bold); color: var(--text-primary); letter-spacing: -0.01em; }
+.adm-kpi__pct { font-size: var(--text-xs); font-weight: var(--font-weight-semibold); }
+.adm-kpi__pct--brand { color: var(--utility-brand-600); }
+.adm-kpi__pct--ok { color: var(--utility-success-600); }
+.adm-kpi__pct--warn { color: var(--utility-warning-600); }
+
+.adm-toolbar { display: flex; align-items: center; gap: var(--spacing-lg); flex-wrap: wrap; }
+.adm-search { flex: 1 1 240px; max-width: 380px; }
+.adm-filter { max-width: 260px; flex: 0 1 auto; }
+@media (max-width: 640px) { .adm-search, .adm-filter { max-width: none; flex: 1 1 100%; } }
+
+.profile-panel__roles { padding: var(--spacing-md); border-top: 1px solid var(--border-secondary); display: flex; flex-direction: column; gap: 2px; }
+.profile-panel__roles-label { font-size: var(--text-xs); font-weight: var(--font-weight-semibold); color: var(--text-quaternary); text-transform: uppercase; letter-spacing: 0.04em; padding: var(--spacing-xs) var(--spacing-md); }
+.role-item {
+  display: flex; align-items: center; gap: var(--spacing-md); width: 100%;
+  padding: var(--spacing-md); border-radius: var(--radius-sm); text-align: left;
+  font-size: var(--text-sm); color: var(--text-secondary); transition: background var(--transition-fast);
+}
+.role-item:hover { background: var(--bg-primary-hover); }
+.role-item.is-active { background: var(--utility-brand-50); color: var(--text-brand-secondary); font-weight: var(--font-weight-semibold); }
+.role-item__icon { display: inline-flex; color: var(--fg-quaternary); }
+.role-item.is-active .role-item__icon { color: var(--fg-brand-primary); }
+.role-item__icon .icon { width: 18px; height: 18px; }
+.role-item__label { flex: 1; min-width: 0; }
+.role-item__check { color: var(--fg-brand-primary); width: 16px; height: 16px; }
+
+.nav-item--back { color: var(--text-brand-secondary); margin-bottom: var(--spacing-md); border: 1px dashed var(--border-brand, var(--border-primary)); }
+.nav-item--back .nav-item__icon { color: var(--fg-brand-primary); }
+
 /* ---------- Material: inventarizatsiya tanlov kartalari ---------- */
 .inv-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-lg); }
 @media (max-width: 900px) { .inv-cards { grid-template-columns: 1fr; } }
