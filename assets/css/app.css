@@ -444,6 +444,105 @@
 .nav-item--back { color: var(--text-brand-secondary); margin-bottom: var(--spacing-md); border: 1px dashed var(--border-brand, var(--border-primary)); }
 .nav-item--back .nav-item__icon { color: var(--fg-brand-primary); }
 
+/* ---------- Admin: O'zbekiston xaritasi (dashboard) ---------- */
+.uzmap-wrap { position: relative; width: 100%; }
+.uzmap { width: 100%; height: auto; display: block; }
+.uzmap__base { fill: var(--utility-brand-500); transition: fill-opacity var(--transition-fast); pointer-events: none; }
+.uzmap__base.is-inert { fill: var(--bg-quaternary, var(--bg-secondary)); fill-opacity: 0.6; }
+.uzmap__base.is-hover { fill: var(--utility-brand-600); fill-opacity: 1 !important; }
+.uzmap__hit { fill: transparent; stroke: var(--bg-primary); stroke-width: 2; cursor: pointer; }
+.uzmap__hit.is-hover { stroke: var(--utility-brand-700); stroke-width: 2.5; }
+[data-theme="dark"] .uzmap__hit { stroke: var(--bg-secondary); }
+.uzmap-tip {
+  position: absolute; z-index: 20; min-width: 220px; max-width: 280px; pointer-events: none;
+  background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg); padding: var(--spacing-lg); opacity: 0; visibility: hidden;
+  transition: opacity var(--transition-fast);
+}
+.uzmap-tip.is-on { opacity: 1; visibility: visible; }
+.uzmap-tip__title { font-weight: var(--font-weight-semibold); font-size: var(--text-sm); color: var(--text-primary); margin-bottom: var(--spacing-md); }
+.uzmap-tip__row { display: flex; justify-content: space-between; gap: var(--spacing-lg); font-size: var(--text-xs); color: var(--text-tertiary); padding: 2px 0; }
+.uzmap-tip__row b { color: var(--text-primary); }
+.uzmap-tip__hint { margin-top: var(--spacing-md); font-size: 11px; color: var(--text-brand-secondary); }
+
+.dash-map-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--spacing-2xl); align-items: start; }
+@media (max-width: 1024px) { .dash-map-grid { grid-template-columns: 1fr; } }
+.dash-legend { display: flex; align-items: center; gap: var(--spacing-md); }
+.dash-legend__label { font-size: var(--text-xs); color: var(--text-tertiary); }
+.dash-legend__scale { width: 96px; height: 8px; border-radius: var(--radius-full); background: linear-gradient(90deg, color-mix(in srgb, var(--utility-brand-500) 18%, transparent), var(--utility-brand-500)); }
+.dash-rank { padding: var(--spacing-md); }
+.dash-rank__row { display: grid; grid-template-columns: minmax(0, 1fr) 72px 32px; align-items: center; gap: var(--spacing-md); width: 100%; padding: var(--spacing-md); border-radius: var(--radius-sm); text-align: left; transition: background var(--transition-fast); }
+.dash-rank__row:hover { background: var(--bg-primary-hover); }
+.dash-rank__name { font-size: var(--text-xs); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-rank__bar { height: 6px; border-radius: var(--radius-full); background: var(--bg-quaternary, var(--bg-secondary)); overflow: hidden; }
+.dash-rank__fill { display: block; height: 100%; border-radius: var(--radius-full); background: var(--utility-brand-500); }
+.dash-rank__val { font-size: var(--text-xs); font-weight: var(--font-weight-semibold); color: var(--text-primary); text-align: right; }
+.dash-district-map .uzmap { max-height: 460px; }
+.dash-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-md); margin-bottom: var(--spacing-lg); }
+.dash-chip {
+  display: inline-flex; align-items: center; gap: var(--spacing-md); min-height: 36px;
+  padding: 0 var(--spacing-lg); border-radius: var(--radius-full);
+  border: 1px solid var(--border-primary); background: var(--bg-primary);
+  font-size: var(--text-xs); font-weight: var(--font-weight-medium); color: var(--text-secondary);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.dash-chip:hover { background: var(--bg-primary-hover); }
+.dash-chip.is-active { background: var(--utility-brand-50); border-color: var(--border-brand); color: var(--text-brand-secondary); font-weight: var(--font-weight-semibold); }
+.dash-chip__n { background: var(--bg-secondary); border-radius: var(--radius-full); padding: 0 var(--spacing-md); font-size: 11px; color: var(--text-tertiary); }
+.dash-chip.is-active .dash-chip__n { background: var(--utility-brand-100); color: var(--utility-brand-700); }
+
+/* ---------- Admin: org detail v2 (mock layout) ---------- */
+.odx-back { display: inline-flex; align-items: center; gap: var(--spacing-sm); color: var(--text-tertiary); font-size: var(--text-sm); font-weight: var(--font-weight-medium); }
+.odx-back:hover { color: var(--text-primary); }
+.odx-back .icon { width: 16px; height: 16px; }
+.odx-hero {
+  background: linear-gradient(120deg, var(--utility-brand-700), var(--utility-brand-500));
+  border-radius: var(--radius-xl); padding: var(--spacing-3xl); color: #fff; margin-bottom: var(--spacing-2xl);
+}
+.odx-hero__name { font-size: var(--display-xs); font-weight: var(--font-weight-bold); line-height: 1.25; overflow-wrap: anywhere; }
+.odx-hero__badges { display: flex; flex-wrap: wrap; gap: var(--spacing-md); margin: var(--spacing-lg) 0 var(--spacing-2xl); }
+.odx-badge { padding: 3px var(--spacing-lg); border-radius: var(--radius-full); background: rgba(255, 255, 255, 0.16); font-size: var(--text-xs); font-weight: var(--font-weight-medium); }
+.odx-badge--ok { background: rgba(255, 255, 255, 0.92); color: var(--utility-success-700); }
+.odx-hero__facts { display: flex; flex-wrap: wrap; gap: var(--spacing-3xl); }
+.odx-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.odx-fact__l { font-size: var(--text-xs); opacity: 0.75; }
+.odx-fact__v { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
+.odx-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: var(--spacing-2xl); align-items: start; }
+@media (max-width: 1024px) { .odx-grid { grid-template-columns: 1fr; } }
+.odx-col { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; }
+.odx-info__head { display: flex; align-items: center; gap: var(--spacing-lg); width: 100%; padding: var(--spacing-xl) var(--spacing-2xl); text-align: left; }
+.odx-info__icon { width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--utility-brand-50); color: var(--utility-brand-600); display: grid; place-items: center; flex: none; }
+.odx-info__icon .icon { width: 18px; height: 18px; }
+.odx-info__title { flex: 1; font-weight: var(--font-weight-semibold); font-size: var(--text-sm); color: var(--text-primary); min-width: 0; }
+.odx-info__chev { color: var(--fg-quaternary); transition: transform var(--transition-fast); flex: none; }
+.odx-info.is-open .odx-info__chev { transform: rotate(180deg); }
+.odx-info__body { display: none; padding: 0 var(--spacing-2xl) var(--spacing-lg); }
+.odx-info.is-open .odx-info__body { display: block; }
+.odx-info__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-lg); padding: var(--spacing-md) 0; border-bottom: 1px dashed var(--border-secondary); }
+.odx-info__row:last-child { border-bottom: 0; }
+.odx-info__label { font-size: var(--text-sm); color: var(--text-tertiary); flex: none; }
+.odx-info__value { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); color: var(--text-primary); text-align: right; overflow-wrap: anywhere; min-width: 0; }
+.odx-map { height: 300px; border-radius: var(--radius-md); overflow: hidden; position: relative; z-index: 0; }
+.odx-donut { position: relative; width: 220px; margin: 0 auto var(--spacing-lg); }
+.odx-donut__center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+.odx-donut__center b { font-size: var(--text-lg); color: var(--text-primary); }
+.odx-donut__center span { font-size: var(--text-xs); color: var(--text-tertiary); }
+.odx-legend { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.odx-legend__row { display: flex; align-items: center; gap: var(--spacing-md); font-size: var(--text-xs); }
+.odx-legend__dot { width: 10px; height: 10px; border-radius: var(--radius-full); flex: none; }
+.odx-legend__name { flex: 1; color: var(--text-secondary); min-width: 0; }
+.odx-legend__val { color: var(--text-primary); }
+.odx-timeline { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.odx-time { display: flex; gap: var(--spacing-md); align-items: flex-start; }
+.odx-time__dot { width: 9px; height: 9px; border-radius: var(--radius-full); background: var(--utility-brand-500); margin-top: 5px; flex: none; }
+.odx-time__title { font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-primary); }
+.odx-time__sub { font-size: var(--text-xs); color: var(--text-tertiary); }
+.od-embed-head { display: flex; align-items: center; gap: var(--spacing-lg); margin: var(--spacing-2xl) 0 var(--spacing-lg); }
+.od-embed-head__line { flex: 1; height: 1px; background: var(--border-secondary); }
+.od-embed-head__label { font-size: var(--text-xs); font-weight: var(--font-weight-semibold); color: var(--text-quaternary); text-transform: uppercase; letter-spacing: 0.04em; }
+.od-embed .page { padding: 0; max-width: none; }
+.od-embed .page__title { font-size: var(--text-xl); }
+
 /* ---------- Admin: tashkilot ma'lumotlari (org detail) ---------- */
 .od-hero { display: flex; align-items: center; gap: var(--spacing-2xl); padding: var(--spacing-2xl); flex-wrap: wrap; }
 .od-ring { position: relative; flex: none; display: grid; place-items: center; }

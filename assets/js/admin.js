@@ -578,32 +578,153 @@
     });
 
     var od = AD().orgDetail, org = odState.org;
+    var D = global.DATA;
     var page = h("div", { class: "page" });
+    var pctAll = od.userFields.total ? Math.round(od.userFields.done / od.userFields.total * 100) : 0;
 
-    // Sarlavha + amallar
-    page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
-      h("div", { style: "min-width:0" }, [
-        h("h1", { class: "page__title", text: org.name }),
-        h("p", { class: "page__desc", text: "STIR: " + org.stir + (org.type ? " · " + org.type : "") })
+    // Qaytish + pasport
+    page.appendChild(h("div", { class: "flex justify-between items-start gap-lg flex-wrap", style: "margin-bottom:var(--spacing-lg)" }, [
+      h("button", { class: "odx-back", type: "button", onClick: function () { App.navigate("aorgs"); } }, [UI.icon("chevron-left"), h("span", { text: t("od.back_registry") })]),
+      UI.Button({ label: t("od.open_passport"), variant: "secondary", size: "sm", icon: "eye", onClick: function () { App.openOrg(org); } })
+    ]));
+
+    // Gradient hero banner
+    page.appendChild(h("div", { class: "odx-hero" }, [
+      h("h1", { class: "odx-hero__name", text: org.name }),
+      h("div", { class: "odx-hero__badges" }, [
+        h("span", { class: "odx-badge odx-badge--ok", text: t("st.active", "Faol") }),
+        h("span", { class: "odx-badge", text: "Sog‘liqni saqlash" }),
+        h("span", { class: "odx-badge", text: (org.region || "Toshkent shahri").replace(" viloyati", "") }),
+        h("span", { class: "odx-badge", text: "Davlat muassasasi" })
       ]),
-      h("div", { class: "flex gap-md flex-wrap" }, [
-        UI.Button({ label: t("od.open_passport"), variant: "secondary", icon: "eye", onClick: function () { App.openOrg(org); } }),
-        UI.Button({ label: t("common.back"), variant: "secondary", icon: "chevron-left", onClick: function () { App.navigate("aorgs"); } })
+      h("div", { class: "odx-hero__facts" }, [
+        heroFact("STIR", org.stir),
+        heroFact(t("odx.org_code"), "G71"),
+        heroFact(t("odx.founded"), "2000"),
+        heroFact(t("odx.ownership"), "Davlat mulki"),
+        heroFact(t("odx.authority"), "Sog‘liqni saqlash vazirligi")
       ])
     ]));
 
-    // Umumiy to'ldirilganlik hero
-    var pctAll = od.userFields.total ? Math.round(od.userFields.done / od.userFields.total * 100) : 0;
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "card od-hero" }, [
+    // KPI qatori
+    var staffCount = D.staff.totals.physical;
+    var assetsTotal = 471280; // mln so'm (integratsiyadan)
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      App.kpi("users", t("odx.kpi.staff"), staffCount, null, ""),
+      App.kpi("wallet", t("odx.kpi.assets"), Fmt.num(assetsTotal) + " mln", null, "ok"),
+      App.kpi("check", t("odx.kpi.fill"), pctAll + "%", pctAll, pctAll >= 100 ? "ok" : "warn"),
+      App.kpi("shield", t("odx.kpi.errors"), 0, null, "")
+    ])));
+
+    // 2 ustunli asosiy grid
+    var leftCol = h("div", { class: "odx-col" });
+    var rightCol = h("div", { class: "odx-col" });
+
+    // Rekvizitlar
+    leftCol.appendChild(infoCard("clipboard", t("odx.rekvizit"), [
+      ["STIR", org.stir], ["OKED", "72110"], [t("odx.org_code"), "G71"],
+      [t("material.type"), "Davlat muassasasi"], [t("odx.ownership"), "Davlat mulki"],
+      [t("odx.founded"), "25.04.2000"],
+      [t("common.status"), h("span", { class: "badge badge--dotless badge--success", text: t("st.active", "Faol") })]
+    ], true));
+
+    // Rahbar va aloqa
+    var dep = (D.general.deputies || [])[0] || { name: "—", phone: "—" };
+    leftCol.appendChild(infoCard("users", t("odx.leader"), [
+      [t("odx.leader_name"), dep.name], ["Telefon", dep.phone],
+      [t("odx.address"), "Toshkent shahri, Yakkasaroy tumani"]
+    ], true));
+
+    // Bank va xazina hisobvaraqlari
+    leftCol.appendChild(infoCard("wallet", t("odx.bank"), (D.general.dts.accounts || []).map(function (a) {
+      return [t(a.key), a.end != null ? Fmt.currency(a.end) : "—"];
+    }), false));
+
+    // Ko'chmas mulk
+    var fac = D.material.facility || { rooms: [], areas: [] };
+    var roomsTotal = (fac.rooms || []).reduce(function (a, b) { return a + b; }, 0);
+    var areaTotal = (fac.areas || []).reduce(function (a, b) { return a + b; }, 0);
+    leftCol.appendChild(infoCard("building", t("odx.realty"), [
+      [t("odx.bld_count"), Fmt.num(D.location.buildings.length) + " ta"],
+      [t("odx.rooms"), Fmt.num(roomsTotal) + " ta"],
+      [t("dash.kpi.area"), Fmt.num(Math.round(areaTotal)) + " m²"]
+    ], false));
+
+    // Joylashuv kartasi (belgilangan joy bilan)
+    var b0 = D.location.buildings[0] || { lat: 41.311, lng: 69.279 };
+    var mapEl = h("div", { class: "odx-map", id: "odx-map" });
+    leftCol.appendChild(h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, h("div", {}, [h("div", { class: "card__title", text: t("odx.location") }), h("div", { class: "card__subtitle", text: b0.city + ", " + b0.district })])),
+      h("div", { class: "card__body" }, mapEl)
+    ]));
+    setTimeout(function () {
+      if (!global.L || !mapEl.isConnected) return;
+      try {
+        var m = global.L.map(mapEl, { scrollWheelZoom: false }).setView([b0.lat, b0.lng], 16);
+        global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 20, attribution: "© OpenStreetMap" }).addTo(m);
+        global.L.circle([b0.lat, b0.lng], { radius: 120, color: "#1570ef", fillColor: "#1570ef", fillOpacity: 0.15, weight: 2 }).addTo(m);
+        global.L.marker([b0.lat, b0.lng]).addTo(m).bindPopup("<b>" + org.name + "</b><br>" + b0.city + ", " + b0.district).openPopup();
+      } catch (e) {}
+    }, 60);
+
+    // O'ng ustun: aktivlar donut
+    var DIST = [
+      ["Binolar va inshootlar", 40.4], ["Mashina va uskunalar", 23.2], ["Transport vositalari", 14.1],
+      ["Inventar va jihozlar", 13.1], ["Yer resurslari", 7.1], ["Boshqa asosiy vositalar", 2.2]
+    ];
+    var donutCanvas = h("canvas", { width: "220", height: "220" });
+    var legend = h("div", { class: "odx-legend" }, DIST.map(function (d, i) {
+      return h("div", { class: "odx-legend__row" }, [
+        h("span", { class: "odx-legend__dot", style: "background:var(--chart-" + (i + 1) + ")" }),
+        h("span", { class: "odx-legend__name", text: d[0] }),
+        h("b", { class: "odx-legend__val", text: d[1] + "%" })
+      ]);
+    }));
+    rightCol.appendChild(h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, h("div", {}, h("div", { class: "card__title", text: t("odx.assets_dist") }))),
+      h("div", { class: "card__body" }, [
+        h("div", { class: "odx-donut" }, [donutCanvas, h("div", { class: "odx-donut__center" }, [h("b", { text: Fmt.num(assetsTotal) + " mln" }), h("span", { text: t("odx.kpi.assets").toLowerCase() })])]),
+        legend
+      ])
+    ]));
+    setTimeout(function () {
+      if (!global.Chart || !donutCanvas.isConnected) return;
+      var css = getComputedStyle(document.documentElement);
+      try {
+        new global.Chart(donutCanvas, {
+          type: "doughnut",
+          data: { labels: DIST.map(function (d) { return d[0]; }), datasets: [{ data: DIST.map(function (d) { return d[1]; }),
+            backgroundColor: DIST.map(function (_, i) { return css.getPropertyValue("--chart-" + (i + 1)).trim() || "#1570ef"; }),
+            borderWidth: 2, borderColor: css.getPropertyValue("--bg-primary").trim() || "#fff" }] },
+          options: { cutout: "74%", plugins: { legend: { display: false } }, animation: { duration: 400 } }
+        });
+      } catch (e) {}
+    }, 60);
+
+    // To'ldirilganlik gauge
+    rightCol.appendChild(h("div", { class: "card od-hero" }, [
       odRing(pctAll),
       h("div", { class: "od-hero__meta" }, [
         h("div", { class: "od-hero__label", text: t("od.overall") }),
         odBar(pctAll),
         h("div", { class: "od-hero__count", text: od.userFields.done + " / " + od.userFields.total + " " + t("od.fields") })
       ])
-    ])));
+    ]));
 
-    // Tablar
+    // O'zgarishlar tarixi
+    rightCol.appendChild(h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, h("div", {}, h("div", { class: "card__title", text: t("odx.history") }))),
+      h("div", { class: "card__body odx-timeline" }, [
+        timeItem(t("odx.h1"), "2026-06-19 · UZASBO"),
+        timeItem(t("odx.h2"), "2026-06-01 · " + dep.name.split(" ")[0]),
+        timeItem(t("odx.h3"), "2026-05-12 · YHXBB")
+      ])
+    ]));
+
+    page.appendChild(h("div", { class: "section odx-grid" }, [leftCol, rightCol]));
+
+    // To'ldirilganlik tablari (bo'limlar + integratsiyalar + tashkilot sahifalari)
+    page.appendChild(h("div", { class: "staff-group-heading", text: t("odx.fill_title") }));
     page.appendChild(UI.Tabs({
       active: odState.tab,
       items: od.tabs.map(function (td) {
@@ -611,6 +732,34 @@
       })
     }));
     return page;
+
+    function heroFact(label, val) {
+      return h("div", { class: "odx-fact" }, [h("span", { class: "odx-fact__l", text: label }), h("b", { class: "odx-fact__v", text: val })]);
+    }
+    function infoCard(icon, title, rows, open) {
+      var body = h("div", { class: "odx-info__body" }, rows.map(function (r) {
+        var row = h("div", { class: "odx-info__row" });
+        row.appendChild(h("span", { class: "odx-info__label", text: r[0] }));
+        var v = h("span", { class: "odx-info__value" });
+        UI.append(v, r[1]);
+        row.appendChild(v);
+        return row;
+      }));
+      var headBtn = h("button", { class: "odx-info__head", type: "button" }, [
+        h("span", { class: "odx-info__icon" }, UI.icon(icon)),
+        h("span", { class: "odx-info__title", text: title }),
+        UI.icon("chevron-down", "odx-info__chev")
+      ]);
+      var card = h("div", { class: "card odx-info" + (open ? " is-open" : "") }, [headBtn, body]);
+      headBtn.addEventListener("click", function () { card.classList.toggle("is-open"); });
+      return card;
+    }
+    function timeItem(title, sub) {
+      return h("div", { class: "odx-time" }, [
+        h("span", { class: "odx-time__dot" }),
+        h("div", {}, [h("div", { class: "odx-time__title", text: title }), h("div", { class: "odx-time__sub", text: sub })])
+      ]);
+    }
   }
 
   function odTabPanel(td) {
@@ -652,6 +801,20 @@
     }
     if ((!td.sections || !td.sections.length) && (!td.integrations || !td.integrations.length)) {
       wrap.appendChild(UI.EmptyState({ icon: "inbox" }));
+    }
+    // Tashkilot rolidagi tegishli sahifani to'liq ko'rsatish
+    var ORG_SECTION_MAP = { umumiy: "general", joylashuv: "location", kadrlar: "staff", mtb: "material", kommunal: "utilities", qarzlar: "debts", mib: "mib" };
+    var secId = ORG_SECTION_MAP[td.id];
+    if (secId && global.App && App.renderSection) {
+      var embedded = App.renderSection(secId);
+      if (embedded) {
+        wrap.appendChild(h("div", { class: "od-embed-head" }, [
+          h("span", { class: "od-embed-head__line" }),
+          h("span", { class: "od-embed-head__label", text: t("od.embed_title") }),
+          h("span", { class: "od-embed-head__line" })
+        ]));
+        wrap.appendChild(h("div", { class: "od-embed" }, embedded));
+      }
     }
     return wrap;
   }
@@ -776,7 +939,249 @@
     return page;
   }
 
+  /* ======================= 7. Bosh sahifa (xarita dashboard) ============ */
+  var dashState = { region: null, soha: "all", type: "all" };
+  var SVG_NS = "http://www.w3.org/2000/svg";
+
+  function bLabel(n) { return Fmt.num(n) + " ta"; }
+  function buildingsOf(regionName) {
+    return AD().buildings.filter(function (b) { return !regionName || b.region === regionName; });
+  }
+
+  /* SVG xarita: entries — viloyatlar yoki tumanlar; opts: {value(e), max, onClick(e), tooltip(e), fit} */
+  function uzMap(entries, opts) {
+    var wrap = h("div", { class: "uzmap-wrap" });
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 970 590");
+    svg.setAttribute("fill", "none");
+    svg.classList.add("uzmap");
+    var tip = h("div", { class: "uzmap-tip" });
+
+    entries.forEach(function (e) {
+      var inert = opts.inert && opts.inert(e);
+      var g0 = e.g && e.g[0], g1 = (e.g && e.g[1]) || g0;
+      if (!g0) return;
+      var base = document.createElementNS(SVG_NS, "path");
+      base.setAttribute("d", g0.d);
+      base.setAttribute("class", "uzmap__base" + (inert ? " is-inert" : ""));
+      if (!inert && opts.value) {
+        var v = opts.value(e), ratio = opts.max ? v / opts.max : 0;
+        base.style.fillOpacity = String(0.18 + 0.82 * Math.max(0, Math.min(1, ratio)));
+      }
+      svg.appendChild(base);
+      if (inert) return;
+
+      var hit = document.createElementNS(SVG_NS, "path");
+      hit.setAttribute("d", g1.d);
+      hit.setAttribute("class", "uzmap__hit");
+      hit.addEventListener("click", function () { if (opts.onClick) opts.onClick(e); });
+      hit.addEventListener("mouseenter", function () { base.classList.add("is-hover"); hit.classList.add("is-hover"); if (opts.tooltip) { tip.innerHTML = ""; UI.append(tip, opts.tooltip(e)); tip.classList.add("is-on"); } });
+      hit.addEventListener("mousemove", function (ev) {
+        var r = wrap.getBoundingClientRect();
+        var x = ev.clientX - r.left + 14, y = ev.clientY - r.top + 14;
+        if (x + tip.offsetWidth > r.width - 8) x = ev.clientX - r.left - tip.offsetWidth - 14;
+        if (y + tip.offsetHeight > r.height - 8) y = ev.clientY - r.top - tip.offsetHeight - 14;
+        tip.style.left = x + "px"; tip.style.top = y + "px";
+      });
+      hit.addEventListener("mouseleave", function () { base.classList.remove("is-hover"); hit.classList.remove("is-hover"); tip.classList.remove("is-on"); });
+      svg.appendChild(hit);
+    });
+
+    wrap.appendChild(svg);
+    wrap.appendChild(tip);
+    if (opts.fit) setTimeout(function () {
+      try { var bb = svg.getBBox(); svg.setAttribute("viewBox", (bb.x - 12) + " " + (bb.y - 12) + " " + (bb.width + 24) + " " + (bb.height + 24)); } catch (e) {}
+    }, 0);
+    return wrap;
+  }
+
+  function distName(type) {
+    var s = type.replace(/_sh$/, "*shahri").replace(/_tumani?$/, "*tumani").replace(/[_-]/g, " ").replace("*", " ");
+    if (s.indexOf(" shahri") < 0 && s.indexOf(" tumani") < 0) s += " tumani";
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function renderDashboard() {
+    return dashState.region ? dashRegionView() : dashCountryView();
+  }
+
+  function dashCountryView() {
+    var names = AD().mapRegionNames;
+    var all = AD().buildings;
+    var byRegion = {};
+    all.forEach(function (b) { byRegion[b.regionKey] = (byRegion[b.regionKey] || 0) + 1; });
+    var maxCount = Math.max.apply(null, Object.keys(byRegion).map(function (k) { return byRegion[k]; }));
+    var totalArea = all.reduce(function (a, b) { return a + b.area; }, 0);
+    var needRepair = all.filter(function (b) { return b.status === "repair"; }).length;
+
+    var page = h("div", { class: "page" });
+    page.appendChild(pageHead(t("dash.title"), t("dash.desc")));
+
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      App.kpi("building", t("admin.kpi.orgs"), App.orgs().length, null, ""),
+      App.kpi("grid", t("dash.kpi.buildings"), all.length, null, "ok"),
+      App.kpi("map", t("dash.kpi.area"), Math.round(totalArea / 1000) + " ming m²", null, ""),
+      App.kpi("refresh", t("dash.kpi.repair"), needRepair, Math.round(needRepair / all.length * 100), "warn")
+    ])));
+
+    // Xarita + hudud reytingi
+    var mapEntries = global.UZMAP_REGIONS || [];
+    var map = uzMap(mapEntries, {
+      inert: function (e) { return !names[e.type]; },
+      value: function (e) { return byRegion[e.type] || 0; },
+      max: maxCount,
+      onClick: function (e) { dashState.region = e.type; dashState.soha = "all"; dashState.type = "all"; App.refresh(); },
+      tooltip: function (e) {
+        var rn = names[e.type], list = buildingsOf(rn);
+        var orgs = {}; list.forEach(function (b) { orgs[b.org] = 1; });
+        var area = list.reduce(function (a, b) { return a + b.area; }, 0);
+        return [
+          h("div", { class: "uzmap-tip__title", text: rn }),
+          tipRow(t("admin.kpi.orgs"), bLabel(Object.keys(orgs).length)),
+          tipRow(t("dash.kpi.buildings"), bLabel(list.length)),
+          tipRow(t("dash.kpi.area"), Fmt.num(area) + " m²"),
+          h("div", { class: "uzmap-tip__hint", text: t("dash.tip_hint") })
+        ];
+      }
+    });
+
+    var rank = h("div", { class: "dash-rank card" });
+    rank.appendChild(h("div", { class: "con-col__title", text: t("dash.rank_title") }));
+    Object.keys(names)
+      .map(function (k) { return { key: k, name: names[k], count: byRegion[k] || 0 }; })
+      .sort(function (a, b) { return b.count - a.count; })
+      .forEach(function (r) {
+        rank.appendChild(h("button", { class: "dash-rank__row", type: "button", onClick: function () { dashState.region = r.key; App.refresh(); } }, [
+          h("span", { class: "dash-rank__name", text: r.name }),
+          h("span", { class: "dash-rank__bar" }, h("span", { class: "dash-rank__fill", style: "width:" + Math.round(r.count / maxCount * 100) + "%" })),
+          h("span", { class: "dash-rank__val", text: String(r.count) })
+        ]));
+      });
+
+    page.appendChild(h("div", { class: "section dash-map-grid" }, [
+      h("div", { class: "card dash-map-card" }, [
+        h("div", { class: "card__head" }, [
+          h("div", {}, [h("div", { class: "card__title", text: t("dash.map_title") }), h("div", { class: "card__subtitle", text: t("dash.map_sub") })]),
+          h("div", { class: "dash-legend" }, [
+            h("span", { class: "dash-legend__label", text: t("dash.legend_few") }),
+            h("span", { class: "dash-legend__scale" }),
+            h("span", { class: "dash-legend__label", text: t("dash.legend_many") })
+          ])
+        ]),
+        h("div", { class: "card__body" }, map)
+      ]),
+      rank
+    ]));
+    return page;
+  }
+  function tipRow(label, val) {
+    return h("div", { class: "uzmap-tip__row" }, [h("span", { text: label }), h("b", { text: val })]);
+  }
+
+  /* Viloyat kesimi: tuman xaritasi + bino turlari + reestr */
+  function dashRegionView() {
+    var names = AD().mapRegionNames;
+    var regionKey = dashState.region, regionName = names[regionKey];
+    var entry = (global.UZMAP_REGIONS || []).filter(function (e) { return e.type === regionKey; })[0];
+    var list = buildingsOf(regionName);
+
+    var page = h("div", { class: "page" });
+    page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
+      h("div", {}, [
+        h("h1", { class: "page__title", text: regionName }),
+        h("p", { class: "page__desc", text: t("dash.region_desc") })
+      ]),
+      h("div", { class: "flex gap-md" }, UI.Button({ label: t("common.back"), variant: "secondary", icon: "chevron-left", onClick: function () { dashState.region = null; App.refresh(); } }))
+    ]));
+
+    // KPI (hudud kesimi)
+    var orgs = {}; list.forEach(function (b) { orgs[b.org] = 1; });
+    var area = list.reduce(function (a, b) { return a + b.area; }, 0);
+    var needRepair = list.filter(function (b) { return b.status === "repair"; }).length;
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      App.kpi("building", t("admin.kpi.orgs"), Object.keys(orgs).length, null, ""),
+      App.kpi("grid", t("dash.kpi.buildings"), list.length, null, "ok"),
+      App.kpi("map", t("dash.kpi.area"), Fmt.num(area) + " m²", null, ""),
+      App.kpi("refresh", t("dash.kpi.repair"), needRepair, list.length ? Math.round(needRepair / list.length * 100) : 0, "warn")
+    ])));
+
+    // Tuman xaritasi
+    var byDistrict = {}; list.forEach(function (b) { byDistrict[b.district] = (byDistrict[b.district] || 0) + 1; });
+    if (entry && entry.districts && entry.districts.length) {
+      var dmap = uzMap(entry.districts, {
+        fit: true,
+        value: function (d) { return byDistrict[distName(d.type)] || 1; },
+        max: Math.max.apply(null, Object.keys(byDistrict).length ? Object.keys(byDistrict).map(function (k) { return byDistrict[k]; }) : [1]),
+        tooltip: function (d) {
+          var dn = distName(d.type);
+          var db = list.filter(function (b) { return b.district === dn; });
+          var darea = db.reduce(function (a, b) { return a + b.area; }, 0);
+          return [
+            h("div", { class: "uzmap-tip__title", text: dn }),
+            tipRow(t("dash.kpi.buildings"), bLabel(db.length)),
+            db.length ? tipRow(t("dash.kpi.area"), Fmt.num(darea) + " m²") : null
+          ];
+        }
+      });
+      page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+        h("div", { class: "card__head" }, h("div", {}, [h("div", { class: "card__title", text: t("dash.district_map") }), h("div", { class: "card__subtitle", text: regionName })])),
+        h("div", { class: "card__body dash-district-map" }, dmap)
+      ])));
+    }
+
+    // Soha filtri + bino turlari chiplari
+    var filteredBySoha = function () { return list.filter(function (b) { return dashState.soha === "all" || b.soha === dashState.soha; }); };
+    var body = h("div");
+    var sohaSel = UI.Select({
+      value: dashState.soha,
+      options: [{ value: "all", label: t("dash.soha") + ": " + t("staff.filter.all") }].concat(AD().buildingSoha.map(function (s) { return { value: s, label: s }; })),
+      onChange: function (v) { dashState.soha = v; dashState.type = "all"; renderBody(); }
+    });
+    sohaSel.classList.add("adm-filter");
+    page.appendChild(h("div", { class: "section" }, [h("div", { class: "adm-toolbar", style: "margin-bottom:var(--spacing-lg)" }, sohaSel), body]));
+
+    function renderBody() {
+      body.innerHTML = "";
+      var bl = filteredBySoha();
+      var byType = {}; bl.forEach(function (b) { byType[b.type] = (byType[b.type] || 0) + 1; });
+
+      // Tur chiplari
+      var chips = h("div", { class: "dash-chips" });
+      chips.appendChild(chip(t("staff.filter.all"), bl.length, dashState.type === "all", function () { dashState.type = "all"; renderBody(); }));
+      AD().buildingTypes.forEach(function (tp) {
+        if (!byType[tp]) return;
+        chips.appendChild(chip(tp, byType[tp], dashState.type === tp, function () { dashState.type = tp; renderBody(); }));
+      });
+      body.appendChild(chips);
+
+      var rows = bl.filter(function (b) { return dashState.type === "all" || b.type === dashState.type; });
+      body.appendChild(h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        sticky: true,
+        columns: [
+          { key: "type", label: t("dash.col.type"), sticky: "left", strong: true },
+          { key: "org", label: t("role.org") },
+          { key: "soha", label: t("dash.soha") },
+          { key: "district", label: t("admin.filter.region") },
+          { key: "area", label: t("dash.col.area"), align: "right", render: function (r) { return Fmt.num(r.area) + " m²"; } },
+          { key: "built", label: t("dash.col.built"), align: "right" },
+          { key: "renovated", label: t("dash.col.renovated"), align: "right", render: function (r) { return r.renovated || "—"; } },
+          { key: "status", label: t("common.status"), render: function (r) { return h("span", { class: "badge badge--dotless badge--" + (r.status === "good" ? "success" : "warning"), text: r.status === "good" ? t("dash.st_good") : t("dash.st_repair") }); } }
+        ],
+        rows: rows,
+        empty: { icon: "building" }
+      }))));
+    }
+    function chip(label, count, active, onClick) {
+      return h("button", { class: "dash-chip" + (active ? " is-active" : ""), type: "button", onClick: onClick }, [
+        h("span", { text: label }), h("span", { class: "dash-chip__n", text: String(count) })
+      ]);
+    }
+    renderBody();
+    return page;
+  }
+
   global.AdminPages = {
+    dashboard: renderDashboard,
     orgManage: renderOrgManage,
     users: renderUsers,
     classifiers: renderClassifiers,
