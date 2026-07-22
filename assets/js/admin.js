@@ -1207,13 +1207,32 @@
     var list = buildingsOf(regionName);
 
     var page = h("div", { class: "page" });
-    page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
-      h("div", {}, [
-        h("h1", { class: "page__title", text: regionName }),
-        h("p", { class: "page__desc", text: t("dash.region_desc") })
-      ]),
-      h("div", { class: "flex gap-md" }, UI.Button({ label: t("common.back"), variant: "secondary", icon: "chevron-left", onClick: function () { dashState.region = null; App.refresh(); } }))
-    ]));
+
+    // Breadcrumb: Bosh sahifa -> viloyat (-> tuman filtri); joyida yangilanadi
+    var crumbs = h("div", { class: "crumbs", style: "margin-bottom:var(--spacing-lg)" });
+    function renderCrumbs() {
+      crumbs.innerHTML = "";
+      crumbs.appendChild(h("button", { class: "crumbs__link", type: "button", onClick: function () { dashState.region = null; dashState.district = null; App.refresh(); } }, h("span", { text: t("dash.title") })));
+      crumbs.appendChild(h("span", { class: "crumbs__sep" }, UI.icon("chevron-right")));
+      if (dashState.district) {
+        crumbs.appendChild(h("button", { class: "crumbs__link", type: "button", onClick: function () {
+          dashState.district = null;
+          if (dmapWrap && dmapWrap._syncSel) dmapWrap._syncSel();
+          syncChip(); renderCrumbs(); renderBody();
+        } }, h("span", { text: regionName })));
+        crumbs.appendChild(h("span", { class: "crumbs__sep" }, UI.icon("chevron-right")));
+        crumbs.appendChild(h("span", { class: "crumbs__cur", text: dashState.district }));
+      } else {
+        crumbs.appendChild(h("span", { class: "crumbs__cur", text: regionName }));
+      }
+    }
+    renderCrumbs();
+    page.appendChild(crumbs);
+
+    page.appendChild(h("div", { class: "page__head" }, h("div", {}, [
+      h("h1", { class: "page__title", text: regionName }),
+      h("p", { class: "page__desc", text: t("dash.region_desc") })
+    ])));
 
     // KPI (hudud kesimi)
     var orgs = {}; list.forEach(function (b) { orgs[b.org] = 1; });
@@ -1236,7 +1255,7 @@
       chipHost.appendChild(h("button", { class: "dash-chip is-active", type: "button", onClick: function () {
         dashState.district = null;
         if (dmapWrap && dmapWrap._syncSel) dmapWrap._syncSel();
-        syncChip(); renderBody();
+        syncChip(); renderCrumbs(); renderBody();
       } }, [h("span", { text: dashState.district }), h("span", { class: "dash-chip__n", text: "✕" })]));
     }
     if (entry && entry.districts && entry.districts.length) {
@@ -1248,7 +1267,7 @@
         onClick: function (d) {
           var dn = distName(d.type);
           dashState.district = dashState.district === dn ? null : dn;
-          syncChip(); renderBody();
+          syncChip(); renderCrumbs(); renderBody();
         },
         tooltip: function (d) {
           var dn = distName(d.type), dbase = distBase(dn);
@@ -1332,7 +1351,7 @@
   }
 
   /* ======================= 8. Sohalar (kartalar) ======================== */
-  var sohaPageState = { sel: null };
+  var sohaPageState = { sel: null, region: null, district: null };
   var SOHA_ICONS = {
     "Sog‘liqni saqlash": "heart", "Ijtimoiy himoya tashkilotlari": "users", "Sport": "zap",
     "Madaniyat": "grid", "Umumiy ta’lim": "clipboard", "Maktabgacha ta’lim": "heart",
@@ -1355,7 +1374,7 @@
     page.appendChild(pageHead(t("page.asohalar.title"), t("page.asohalar.desc")));
     page.appendChild(h("div", { class: "soha-grid" }, AD().sohalar.map(function (s, i) {
       var st = sohaStats(s, i);
-      return h("button", { class: "soha-card card", type: "button", onClick: function () { sohaPageState.sel = s; App.refresh(); } }, [
+      return h("button", { class: "soha-card card", type: "button", onClick: function () { sohaPageState.sel = s; sohaPageState.region = null; sohaPageState.district = null; App.refresh(); } }, [
         h("div", { class: "soha-card__head" }, [
           h("span", { class: "soha-card__tile", style: "background:var(--chart-" + ((i % 6) + 1) + ")" }, UI.icon(SOHA_ICONS[s.name] || "box")),
           h("span", { class: "soha-card__name", text: s.name })
@@ -1377,31 +1396,127 @@
     }
   }
 
-  /* Soha ichki sahifasi — skelet (kontent keyin aniqlashtiriladi) */
+  /* Soha ichi — chuqur drill: soha -> hududlar -> tumanlar -> tashkilotlar */
+  function sohaRegionStats(si, ri) {
+    var orgs = 4 + ((si * 7 + ri * 13) % 34);
+    return { orgs: orgs, buildings: orgs + ((si * 3 + ri * 5) % 42), staff: orgs * (14 + ((si + ri) % 26)) };
+  }
+  function sohaDistrictStats(si, ri, di) {
+    var orgs = 1 + ((si * 5 + ri * 3 + di * 7) % 9);
+    return { orgs: orgs, buildings: orgs + ((si + ri + di * 3) % 7), staff: orgs * (10 + ((si + di) % 22)) };
+  }
+  function sohaOrgName(s, district, j) {
+    var n = s.name;
+    if (n === "Sog‘liqni saqlash") return district + " " + (j + 1) + "-son oilaviy poliklinikasi";
+    if (n === "Umumiy ta’lim") return "“" + (100 + j * 3) + "-sonli umumiy o‘rta ta’lim maktabi” DM";
+    if (n === "Maktabgacha ta’lim") return district + " " + (20 + j) + "-sonli MTT";
+    if (n === "Madaniyat") return district + " " + (j + 1) + "-madaniyat uyi";
+    if (n === "Sport") return district + " bolalar-o‘smirlar sport maktabi";
+    return district + " " + n.split(" ")[0].toLowerCase() + " bo‘limi" + (j ? " №" + (j + 1) : "");
+  }
+
+  function sohaCrumbs() {
+    var st = sohaPageState;
+    var parts = [
+      { label: t("page.asohalar.title"), onClick: function () { st.sel = null; st.region = null; st.district = null; App.refresh(); } },
+      { label: st.sel.name, onClick: st.region ? function () { st.region = null; st.district = null; App.refresh(); } : null }
+    ];
+    if (st.region) parts.push({ label: st.region, onClick: st.district ? function () { st.district = null; App.refresh(); } : null });
+    if (st.district) parts.push({ label: st.district, onClick: null });
+    var row = h("div", { class: "crumbs" });
+    parts.forEach(function (p, idx) {
+      if (idx) row.appendChild(h("span", { class: "crumbs__sep" }, UI.icon("chevron-right")));
+      row.appendChild(p.onClick
+        ? h("button", { class: "crumbs__link", type: "button", onClick: p.onClick }, h("span", { text: p.label }))
+        : h("span", { class: "crumbs__cur", text: p.label }));
+    });
+    return row;
+  }
+
+  function drillTable(cols, rows) {
+    return h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" }, UI.DataTable({ sticky: true, columns: cols, rows: rows })));
+  }
+
   function sohaDetailPage(s) {
-    var i = AD().sohalar.indexOf(s);
-    var st = sohaStats(s, i);
+    var st = sohaPageState;
+    var si = AD().sohalar.indexOf(s);
     var page = h("div", { class: "page" });
-    page.appendChild(h("div", { class: "flex justify-between items-start gap-lg flex-wrap", style: "margin-bottom:var(--spacing-lg)" },
-      h("button", { class: "odx-back", type: "button", onClick: function () { sohaPageState.sel = null; App.refresh(); } }, [UI.icon("chevron-left"), h("span", { text: t("page.asohalar.title") })])));
-    page.appendChild(pageHead(s.name, t("soha.detail_desc")));
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:3;--cols-md:1" }, [
-      App.kpi("building", t("soha.orgs"), st.orgs, null, ""),
-      App.kpi("grid", t("soha.buildings"), st.buildings, null, "ok"),
-      App.kpi("users", t("soha.staff"), st.staff, null, "")
-    ])));
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
-      h("div", { class: "card__head" }, h("div", {}, h("div", { class: "card__title", text: t("con.directions") }))),
-      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
-        columns: [
-          { key: "code", label: "Kod", render: function (r) { return h("span", { class: "mono", text: r.code }); } },
-          { key: "name", label: t("common.name"), strong: true }
-        ],
-        rows: s.directions
-      }))
-    ])));
-    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, h("div", { class: "card__body" },
-      UI.EmptyState({ icon: "inbox", title: t("soha.inner_soon"), desc: t("soha.inner_soon_desc") })))));
+    page.appendChild(h("div", { style: "margin-bottom:var(--spacing-lg)" }, sohaCrumbs()));
+
+    var names = AD().mapRegionNames;
+    var regionList = Object.keys(names).map(function (k) { return names[k]; });
+
+    if (!st.region) {
+      // 2-daraja: hududlar ro'yxati
+      var tot = sohaStats(s, si);
+      page.appendChild(pageHead(s.name, t("soha.detail_desc")));
+      page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:3;--cols-md:1" }, [
+        App.kpi("building", t("soha.orgs"), tot.orgs, null, ""),
+        App.kpi("grid", t("soha.buildings"), tot.buildings, null, "ok"),
+        App.kpi("users", t("soha.staff"), tot.staff, null, "")
+      ])));
+      page.appendChild(h("div", { class: "staff-group-heading", text: t("soha.regions") }));
+      page.appendChild(h("div", { class: "section" }, drillTable([
+        { key: "name", label: t("admin.filter.region"), sticky: "left", strong: true },
+        { key: "orgs", label: t("soha.orgs"), align: "right", render: function (r) { return Fmt.num(r.orgs); } },
+        { key: "buildings", label: t("soha.buildings"), align: "right", render: function (r) { return Fmt.num(r.buildings); } },
+        { key: "staff", label: t("soha.staff"), align: "right", render: function (r) { return Fmt.num(r.staff); } },
+        { key: "act", label: "", sticky: "right", render: function (r) {
+          return UI.Button({ icon: "chevron-right", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { st.region = r.name; App.refresh(); } });
+        } }
+      ], regionList.map(function (rn, ri) { var x = sohaRegionStats(si, ri); return { name: rn, orgs: x.orgs, buildings: x.buildings, staff: x.staff }; }))));
+      return page;
+    }
+
+    var ri = regionList.indexOf(st.region);
+    var districts = (global.UZB_REGIONS && global.UZB_REGIONS[st.region]) || ["Markaziy tuman"];
+
+    if (!st.district) {
+      // 3-daraja: tanlangan hudud ichida tumanlar
+      var rs = sohaRegionStats(si, ri);
+      page.appendChild(pageHead(st.region, s.name + " — " + t("soha.districts_desc")));
+      page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:3;--cols-md:1" }, [
+        App.kpi("building", t("soha.orgs"), rs.orgs, null, ""),
+        App.kpi("grid", t("soha.buildings"), rs.buildings, null, "ok"),
+        App.kpi("users", t("soha.staff"), rs.staff, null, "")
+      ])));
+      page.appendChild(h("div", { class: "staff-group-heading", text: t("soha.districts") }));
+      page.appendChild(h("div", { class: "section" }, drillTable([
+        { key: "name", label: "Tuman", sticky: "left", strong: true },
+        { key: "orgs", label: t("soha.orgs"), align: "right", render: function (r) { return Fmt.num(r.orgs); } },
+        { key: "buildings", label: t("soha.buildings"), align: "right", render: function (r) { return Fmt.num(r.buildings); } },
+        { key: "staff", label: t("soha.staff"), align: "right", render: function (r) { return Fmt.num(r.staff); } },
+        { key: "act", label: "", sticky: "right", render: function (r) {
+          return UI.Button({ icon: "chevron-right", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { st.district = r.name; App.refresh(); } });
+        } }
+      ], districts.map(function (dn, di) { var x = sohaDistrictStats(si, ri, di); return { name: dn, orgs: x.orgs, buildings: x.buildings, staff: x.staff }; }))));
+      return page;
+    }
+
+    // 4-daraja: tuman ichidagi tashkilotlar (bosilsa pasportga)
+    var di = districts.indexOf(st.district);
+    var ds = sohaDistrictStats(si, ri, Math.max(0, di));
+    var orgs = [];
+    for (var j = 0; j < ds.orgs; j++) {
+      orgs.push({
+        name: sohaOrgName(s, st.district, j),
+        stir: "2" + String(10000000 + ((si * 131 + ri * 977 + di * 89 + j * 7919) % 89999999)),
+        buildings: 1 + ((j + di) % 4),
+        staff: 12 + ((si + j * 17) % 160)
+      });
+    }
+    page.appendChild(pageHead(st.district, s.name + " — " + t("soha.orgs_desc")));
+    page.appendChild(h("div", { class: "section" }, drillTable([
+      { key: "name", label: t("admin.col.name"), sticky: "left", strong: true },
+      { key: "stir", label: "STIR", render: function (r) { return h("span", { class: "mono", text: r.stir }); } },
+      { key: "buildings", label: t("soha.buildings"), align: "right", render: function (r) { return Fmt.num(r.buildings); } },
+      { key: "staff", label: t("soha.staff"), align: "right", render: function (r) { return Fmt.num(r.staff); } },
+      { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
+        return UI.Button({ icon: "eye", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () {
+          App.openOrgDetail({ name: r.name, stir: r.stir, region: st.region, type: s.name });
+        } });
+      } }
+    ], orgs)));
     return page;
   }
 

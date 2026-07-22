@@ -610,6 +610,14 @@
 .od-legend__dot--user { background: var(--bg-error-primary); }
 .od-legend__dot--int { background: var(--bg-secondary); }
 
+/* ---------- Breadcrumbs (drill navigatsiyasi) ---------- */
+.crumbs { display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; }
+.crumbs__link { color: var(--text-tertiary); font-size: var(--text-sm); font-weight: var(--font-weight-medium); padding: 2px var(--spacing-sm); border-radius: var(--radius-xs); transition: color var(--transition-fast), background var(--transition-fast); }
+.crumbs__link:hover { color: var(--text-brand-secondary); background: var(--utility-brand-50); }
+.crumbs__cur { color: var(--text-primary); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); padding: 2px var(--spacing-sm); }
+.crumbs__sep { display: inline-flex; color: var(--fg-quaternary); }
+.crumbs__sep .icon { width: 14px; height: 14px; }
+
 /* ---------- Admin: sohalar kartalari ---------- */
 .soha-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-lg); }
 @media (max-width: 1200px) { .soha-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
