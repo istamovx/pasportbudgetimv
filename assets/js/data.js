@@ -137,7 +137,42 @@
       ],
       totals: { plan: 591.25, occupied: 556.75, physical: 599, vacant: 34.5 },
       medStaff: { plan: 514, occupied: 490.25, physical: 524, vacant: 23.75 },
-      doctors: { plan: 143.75, occupied: 123.25, physical: 146, vacant: 20.5 }
+      doctors: { plan: 143.75, occupied: 123.25, physical: 146, vacant: 20.5 },
+      /* Kategoriya ichidagi taqsimot (yig'indisi kategoriya qiymatiga teng) */
+      categoryDetails: {
+        "staff.cat.management": [
+          { label: "Rahbarlar soni", plan: 1, occupied: 1, physical: 1, vacant: 0 },
+          { label: "Rahbar o‘rinbosarlari soni", plan: 4, occupied: 4, physical: 4, vacant: 0 },
+          { label: "Ma’muriy-boshqaruv xodimlar soni", plan: 6, occupied: 5, physical: 6, vacant: 1 },
+          { label: "Ma’muriy-boshqaruvning mutaxassis xodimlar soni", plan: 3, occupied: 3, physical: 3, vacant: 0 },
+          { label: "Ma’muriy-boshqaruvning yordamchi xodimlar soni", plan: 2, occupied: 2, physical: 2, vacant: 0 }
+        ],
+        "staff.cat.production": [
+          { label: "Vrachlar soni", plan: 142.5, occupied: 128, physical: 135, vacant: 14.5 },
+          { label: "O‘rta tibbiyot xodimlari soni", plan: 228.75, occupied: 201.25, physical: 201, vacant: 27.5 },
+          { label: "Kichik tibbiyot xodimlari soni", plan: 141.25, occupied: 126.25, physical: 145, vacant: 15 },
+          { label: "Boshqa ishlab chiqarish xodimlari soni", plan: 1, occupied: 1, physical: 1, vacant: 0 }
+        ],
+        "staff.cat.technical": [
+          { label: "Texnik xodimlar soni", plan: 30, occupied: 45, physical: 55, vacant: -15 },
+          { label: "Xizmat ko‘rsatish xodimlari soni", plan: 31.75, occupied: 40.25, physical: 46, vacant: -8.5 }
+        ]
+      },
+      /* Malaka toifalari (band jismoniy shaxslar kesimida) */
+      malaka: [
+        { group: "Vrachlar", rows: [
+          { label: "Oliy toifa", value: 62 }, { label: "Birinchi toifa", value: 28 },
+          { label: "Ikkinchi toifa", value: 11 }, { label: "Toifasiz", value: 27 }
+        ] },
+        { group: "O‘rta tibbiyot xodimlari", rows: [
+          { label: "Oliy toifa", value: 89 }, { label: "Birinchi toifa", value: 54 },
+          { label: "Ikkinchi toifa", value: 31 }, { label: "Toifasiz", value: 27 }
+        ] },
+        { group: "Pedagogik xodimlar", rows: [
+          { label: "Oliy toifa", value: 1 }, { label: "Birinchi toifa", value: 0 },
+          { label: "Ikkinchi toifa", value: 0 }, { label: "Toifasiz", value: 0 }
+        ] }
+      ]
     },
 
     /* 4. Moddiy texnik baza — transport (YHXBB) */
