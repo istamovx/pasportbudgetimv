@@ -1331,8 +1331,83 @@
     return page;
   }
 
+  /* ======================= 8. Sohalar (kartalar) ======================== */
+  var sohaPageState = { sel: null };
+  var SOHA_ICONS = {
+    "Sog‘liqni saqlash": "heart", "Ijtimoiy himoya tashkilotlari": "users", "Sport": "zap",
+    "Madaniyat": "grid", "Umumiy ta’lim": "clipboard", "Maktabgacha ta’lim": "heart",
+    "Sud, prokuratura va adliya organlari": "shield", "Davlat markaziy hokimiyati va davlat boshqaruvi organlari": "building",
+    "Suv xo‘jaligi": "map", "Qishloq xo‘jaligi": "map", "Fan (oliy ta’lim va ilmiy tadqiqiot muassasalari)": "clipboard"
+  };
+  function sohaStats(s, i) {
+    // Deterministik ko'rsatkichlar; mavjud binolar datasetiga mos kelsa, undan olinadi
+    var b = AD().buildings.filter(function (x) { return x.soha === s.name; }).length;
+    return {
+      orgs: 40 + ((i * 137) % 380),
+      buildings: b || 60 + ((i * 61) % 300),
+      staff: 1200 + ((i * 997) % 9000)
+    };
+  }
+
+  function renderSohalarPage() {
+    if (sohaPageState.sel) return sohaDetailPage(sohaPageState.sel);
+    var page = h("div", { class: "page" });
+    page.appendChild(pageHead(t("page.asohalar.title"), t("page.asohalar.desc")));
+    page.appendChild(h("div", { class: "soha-grid" }, AD().sohalar.map(function (s, i) {
+      var st = sohaStats(s, i);
+      return h("button", { class: "soha-card card", type: "button", onClick: function () { sohaPageState.sel = s; App.refresh(); } }, [
+        h("div", { class: "soha-card__head" }, [
+          h("span", { class: "soha-card__tile", style: "background:var(--chart-" + ((i % 6) + 1) + ")" }, UI.icon(SOHA_ICONS[s.name] || "box")),
+          h("span", { class: "soha-card__name", text: s.name })
+        ]),
+        h("div", { class: "soha-card__stats" }, [
+          sohaStat(t("soha.orgs"), st.orgs),
+          sohaStat(t("soha.buildings"), st.buildings),
+          sohaStat(t("soha.staff"), st.staff)
+        ])
+      ]);
+    })));
+    return page;
+
+    function sohaStat(label, val) {
+      return h("div", { class: "soha-card__stat" }, [
+        h("span", { class: "soha-card__stat-l", text: label }),
+        h("b", { class: "soha-card__stat-v", text: Fmt.num(val) })
+      ]);
+    }
+  }
+
+  /* Soha ichki sahifasi — skelet (kontent keyin aniqlashtiriladi) */
+  function sohaDetailPage(s) {
+    var i = AD().sohalar.indexOf(s);
+    var st = sohaStats(s, i);
+    var page = h("div", { class: "page" });
+    page.appendChild(h("div", { class: "flex justify-between items-start gap-lg flex-wrap", style: "margin-bottom:var(--spacing-lg)" },
+      h("button", { class: "odx-back", type: "button", onClick: function () { sohaPageState.sel = null; App.refresh(); } }, [UI.icon("chevron-left"), h("span", { text: t("page.asohalar.title") })])));
+    page.appendChild(pageHead(s.name, t("soha.detail_desc")));
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:3;--cols-md:1" }, [
+      App.kpi("building", t("soha.orgs"), st.orgs, null, ""),
+      App.kpi("grid", t("soha.buildings"), st.buildings, null, "ok"),
+      App.kpi("users", t("soha.staff"), st.staff, null, "")
+    ])));
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, h("div", {}, h("div", { class: "card__title", text: t("con.directions") }))),
+      h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+        columns: [
+          { key: "code", label: "Kod", render: function (r) { return h("span", { class: "mono", text: r.code }); } },
+          { key: "name", label: t("common.name"), strong: true }
+        ],
+        rows: s.directions
+      }))
+    ])));
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "card" }, h("div", { class: "card__body" },
+      UI.EmptyState({ icon: "inbox", title: t("soha.inner_soon"), desc: t("soha.inner_soon_desc") })))));
+    return page;
+  }
+
   global.AdminPages = {
     dashboard: renderDashboard,
+    sohalar: renderSohalarPage,
     orgManage: renderOrgManage,
     users: renderUsers,
     classifiers: renderClassifiers,
