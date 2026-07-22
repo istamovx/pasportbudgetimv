@@ -108,11 +108,23 @@
 
   var ADMIN_SECTIONS = {
     adashboard: function () { return renderAdminDashboard(); },
-    aorgs: function () { return renderAdminOrgs(); }
+    aorgs: function () { return renderAdminOrgs(); },
+    aorgmanage: function () { return global.AdminPages.orgManage(); },
+    ausers: function () { return global.AdminPages.users(); },
+    aconstructor: function () { return global.AdminPages.konstruktor(); },
+    aclassifiers: function () { return global.AdminPages.classifiers(); },
+    alogs: function () { return global.AdminPages.logs(); }
   };
   var ADMIN_NAV = [
+    { heading: "admin.group.main" },
     { id: "adashboard", icon: "grid" },
-    { id: "aorgs", icon: "building" }
+    { id: "aorgs", icon: "chart" },
+    { id: "aorgmanage", icon: "building" },
+    { id: "ausers", icon: "users" },
+    { heading: "admin.group.system" },
+    { id: "aconstructor", icon: "edit" },
+    { id: "aclassifiers", icon: "table" },
+    { id: "alogs", icon: "clipboard" }
   ];
 
   function isAdminHome() { return ROLE === "admin" && !adminCtx.org; }
@@ -1861,7 +1873,7 @@
     for (var p = 1; p <= pages; p++) { if (p === 1 || p === pages || Math.abs(p - state.page) <= 1) win.push(p); else if (win[win.length - 1] !== "…") win.push("…"); }
     win.forEach(function (p) { nav.appendChild(p === "…" ? h("span", { class: "org-page__ell", text: "…" }) : btn(String(p), p, { active: p === state.page })); });
     nav.appendChild(btn(UI.icon("chevron-right"), state.page + 1, { dis: state.page >= pages }));
-    wrap.appendChild(h("div", { class: "org-pager__info", text: Fmt.num(total) + " ta tashkilot" }));
+    wrap.appendChild(h("div", { class: "org-pager__info", text: Fmt.num(total) + " ta " + (state.noun || "tashkilot") }));
     wrap.appendChild(nav);
     return wrap;
   }
@@ -1893,8 +1905,9 @@
         h("span", { class: "nav-item__label", text: t("admin.back") })
       ]));
     }
-    nav.appendChild(h("div", { class: "sidebar__nav-label", "data-i18n": "nav.menu", text: t("nav.menu") }));
+    if (!isAdminHome()) nav.appendChild(h("div", { class: "sidebar__nav-label", "data-i18n": "nav.menu", text: t("nav.menu") }));
     currentNavItems().forEach(function (item) {
+      if (item.heading) { nav.appendChild(h("div", { class: "sidebar__nav-label", text: t(item.heading) })); return; }
       var el = h("button", { class: "nav-item", type: "button", dataset: { label: t("nav." + item.id) }, onClick: function () { navigate(item.id); } }, [
         h("span", { class: "nav-item__icon" }, UI.icon(item.icon)),
         h("span", { class: "nav-item__label", "data-i18n": "nav." + item.id, text: t("nav." + item.id) })
@@ -2199,5 +2212,11 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 
-  global.App = { navigate: function (id) { navigate(id); } };
+  global.App = {
+    navigate: function (id) { navigate(id); },
+    refresh: function () { navigate(current); },
+    openOrg: adminOpenOrg,
+    orgs: getMockOrgs,
+    pager: orgListPager
+  };
 })(window);
