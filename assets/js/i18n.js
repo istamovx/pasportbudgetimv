@@ -238,6 +238,7 @@
       "dash.top_title": "TOP tashkilotlar",
       "dash.top_sub": "Bino maydoni bo‘yicha yetakchilar — binolarigacha kirish mumkin",
       "dash.district_hint": "Tuman bo‘yicha filtrlash uchun bosing",
+      "dash.open_org": "Tashkilot ma’lumotlariga o‘tish",
       "nav.general": "Umumiy ma’lumot",
       "nav.location": "Joylashuv",
       "nav.staff": "Kadrlar bilan ishlash",
