@@ -692,6 +692,24 @@
     var page = h("div", { class: "page" });
     page.appendChild(pageHead("page.staff.title", "page.staff.desc"));
 
+    page.appendChild(UI.Tabs({
+      items: [
+        { id: "umumiy", label: t("staff.tab.umumiy"), render: function () { return staffOverviewPanel(s); } },
+        { id: "band", label: t("staff.tab.band"), render: function () { return staffShtatPanel(s, "occupied"); } },
+        { id: "jismoniy", label: t("staff.tab.jismoniy"), render: function () { return staffShtatPanel(s, "physical"); } },
+        { id: "malaka", label: t("staff.tab.malaka"), render: function () { return staffMalakaPanel(s); } },
+        { id: "vakant", label: t("staff.tab.vakant"), render: function () { return staffShtatPanel(s, "vacant"); } },
+        { id: "stavka", label: t("staff.tab.stavka"), render: function () { return staffStavkaPanel(s); } },
+        { id: "qolgan", label: t("staff.tab.qolgan"), render: function () { return staffQolganPanel(s); } }
+      ]
+    }));
+    return page;
+  }
+
+  /* Tab 1: Umumiy kadrlar — KPI + chartlar (avvalgi ko'rinish) */
+  function staffOverviewPanel(s) {
+    var page = h("div", { class: "staff-panel" });
+
     // KPIs
     page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
       UI.KpiCard({ label: t("staff.col.plan"), value: Fmt.num(s.totals.plan), icon: "users" }),
@@ -763,6 +781,238 @@
       }
     })));
     return page;
+  }
+
+  /* Accordion guruh: sarlavha + "Soni: X ta" + yig'iladigan qatorlar + Tahrirlash */
+  function staffCnt(v) { return Fmt.num(v, v % 1 === 0 ? 0 : (v * 10) % 1 === 0 ? 1 : 2); }
+  function staffAccGroup(opts) {
+    var hasRows = opts.rows && opts.rows.length;
+    var head = h("button", { class: "acc-grp__head", type: "button" }, [
+      h("span", { class: "acc-grp__title" }, [
+        h("b", { text: opts.title }),
+        h("span", { class: "acc-grp__count", text: " — " + t("common.count") + ": " + staffCnt(opts.total) + " " + t("staff.soni_ta") })
+      ]),
+      hasRows ? UI.icon("chevron-down", "acc-grp__chev") : null
+    ]);
+    var root = h("div", { class: "acc-grp" }, head);
+    if (hasRows) {
+      var body = h("div", { class: "acc-grp__body" });
+      opts.rows.forEach(function (r) {
+        body.appendChild(h("div", { class: "acc-grp__row" }, [
+          h("span", { class: "acc-grp__label", text: r.label }),
+          h("b", { class: "acc-grp__val", text: staffCnt(r.value) + " " + t("staff.soni_ta") })
+        ]));
+      });
+      if (opts.onEdit) body.appendChild(h("div", { class: "acc-grp__foot" },
+        UI.Button({ label: t("common.edit"), icon: "edit", variant: "secondary", size: "sm", onClick: opts.onEdit })));
+      root.appendChild(body);
+      head.addEventListener("click", function () { root.classList.toggle("is-open"); });
+      if (opts.open) root.classList.add("is-open");
+    } else {
+      head.classList.add("is-static");
+    }
+    return root;
+  }
+
+  /* Panel toolbar: filtr + yangilash. options bermasa: Barchasi/Shtat/Ta'rif */
+  function staffToolbar(onFilter, onRefresh, options) {
+    var sel = UI.Select({
+      value: "all",
+      options: options || [
+        { value: "all", label: t("staff.filter.all") },
+        { value: "shtat", label: t("staff.shtat_heading") },
+        { value: "tarif", label: t("staff.tarif_heading") }
+      ],
+      onChange: onFilter
+    });
+    sel.classList.add("staff-filter");
+    return { el: h("div", { class: "staff-toolbar" }, [
+      sel,
+      h("button", { class: "icon-btn", type: "button", "aria-label": t("common.refresh"), title: t("common.refresh"), onClick: onRefresh }, UI.icon("refresh"))
+    ]), sel: sel };
+  }
+
+  /* Tab 2/3/5/7: shtat lavozimlari accordionlari — field: occupied|physical|vacant|plan */
+  function staffShtatPanel(s, field) {
+    var wrap = h("div", { class: "staff-panel" });
+    var listHost = h("div", { class: "staff-groups" });
+    var tb = staffToolbar(function () { renderList(); }, function () { renderList(); });
+    wrap.appendChild(tb.el);
+    wrap.appendChild(listHost);
+
+    function editGroup(cat) {
+      var det = s.categoryDetails[cat.key] || [];
+      openEdit(t(cat.key), det.map(function (r) { return { label: r.label, value: r[field], type: "number" }; }), function (v) {
+        det.forEach(function (r, i) { r[field] = num(v[i]); });
+        cat[field] = det.reduce(function (a, r) { return a + r[field]; }, 0);
+        s.totals[field] = s.categories.reduce(function (a, c) { return a + c[field]; }, 0);
+      });
+    }
+
+    function renderList() {
+      listHost.innerHTML = "";
+      var f = tb.sel.value;
+      if (f !== "tarif") {
+        listHost.appendChild(h("div", { class: "staff-group-heading", text: t("staff.shtat_heading") }));
+        s.categories.forEach(function (c, i) {
+          listHost.appendChild(staffAccGroup({
+            title: t(c.key.replace(".cat.", ".grp.")), total: c[field], open: i === 0,
+            rows: (s.categoryDetails[c.key] || []).map(function (r) { return { label: r.label, value: r[field] }; }),
+            onEdit: function () { editGroup(c); }
+          }));
+        });
+        listHost.appendChild(staffAccGroup({ title: t("staff.total_shtat"), total: s.totals[field] }));
+      }
+      if (f !== "shtat") {
+        listHost.appendChild(h("div", { class: "staff-group-heading", text: t("staff.tarif_heading") }));
+        s.byTarif.forEach(function (r) {
+          listHost.appendChild(staffAccGroup({
+            title: t(r.key), total: r[field],
+            rows: [
+              { label: t("staff.col.plan"), value: r.plan },
+              { label: t("staff.col.occupied"), value: r.occupied },
+              { label: t("staff.col.physical"), value: r.physical },
+              { label: t("staff.col.vacant"), value: r.vacant }
+            ],
+            onEdit: function () {
+              openEdit(t(r.key), [
+                { label: t("staff.col.plan"), value: r.plan, type: "number" },
+                { label: t("staff.col.occupied"), value: r.occupied, type: "number" },
+                { label: t("staff.col.physical"), value: r.physical, type: "number" },
+                { label: t("staff.col.vacant"), value: r.vacant, type: "number" }
+              ], function (v) { r.plan = num(v[0]); r.occupied = num(v[1]); r.physical = num(v[2]); r.vacant = num(v[3]); });
+            }
+          }));
+        });
+      }
+    }
+    renderList();
+    return wrap;
+  }
+
+  /* Tab 4: malaka toifalari — filtri guruh nomlari bo'yicha */
+  function staffMalakaPanel(s) {
+    var wrap = h("div", { class: "staff-panel" });
+    var listHost = h("div", { class: "staff-groups" });
+    var tb = staffToolbar(function () { renderList(); }, function () { renderList(); },
+      [{ value: "all", label: t("staff.filter.all") }].concat(s.malaka.map(function (g, i) { return { value: String(i), label: g.group }; })));
+    wrap.appendChild(tb.el);
+    wrap.appendChild(listHost);
+    function renderList() {
+      listHost.innerHTML = "";
+      var f = tb.sel.value;
+      listHost.appendChild(h("div", { class: "staff-group-heading", text: t("staff.tab.malaka") }));
+      s.malaka.forEach(function (g, i) {
+        if (f !== "all" && f !== String(i)) return;
+        var total = g.rows.reduce(function (a, r) { return a + r.value; }, 0);
+        listHost.appendChild(staffAccGroup({
+          title: g.group, total: total, open: f !== "all" || i === 0, rows: g.rows,
+          onEdit: function () {
+            openEdit(g.group, g.rows.map(function (r) { return { label: r.label, value: r.value, type: "number" }; }),
+              function (v) { g.rows.forEach(function (r, j) { r.value = num(v[j]); }); });
+          }
+        }));
+      });
+    }
+    renderList();
+    return wrap;
+  }
+
+  /* Tab 7: qolgan shtat lavozimlari — ilmiy daraja + shtat bo'yicha reja */
+  function staffQolganPanel(s) {
+    var wrap = h("div", { class: "staff-panel" });
+    var listHost = h("div", { class: "staff-groups" });
+    var tb = staffToolbar(function () { renderList(); }, function () { renderList(); }, [
+      { value: "all", label: t("staff.filter.all") },
+      { value: "ilmiy", label: t("staff.ilmiy_heading") },
+      { value: "shtat", label: t("staff.shtat_heading") }
+    ]);
+    wrap.appendChild(tb.el);
+    wrap.appendChild(listHost);
+    function renderList() {
+      listHost.innerHTML = "";
+      var f = tb.sel.value;
+      if (f !== "shtat") {
+        listHost.appendChild(h("div", { class: "staff-group-heading", text: t("staff.ilmiy_heading") }));
+        var total = s.ilmiyDaraja.reduce(function (a, r) { return a + r.value; }, 0);
+        listHost.appendChild(staffAccGroup({
+          title: t("staff.ilmiy_heading"), total: total, open: true, rows: s.ilmiyDaraja,
+          onEdit: function () {
+            openEdit(t("staff.ilmiy_heading"), s.ilmiyDaraja.map(function (r) { return { label: r.label, value: r.value, type: "number" }; }),
+              function (v) { s.ilmiyDaraja.forEach(function (r, j) { r.value = num(v[j]); }); });
+          }
+        }));
+      }
+      if (f !== "ilmiy") {
+        listHost.appendChild(h("div", { class: "staff-group-heading", text: t("staff.shtat_heading") }));
+        s.categories.forEach(function (c) {
+          listHost.appendChild(staffAccGroup({
+            title: t(c.key.replace(".cat.", ".grp.")), total: c.plan,
+            rows: (s.categoryDetails[c.key] || []).map(function (r) { return { label: r.label, value: r.plan }; }),
+            onEdit: function () {
+              var det = s.categoryDetails[c.key] || [];
+              openEdit(t(c.key), det.map(function (r) { return { label: r.label, value: r.plan, type: "number" }; }), function (v) {
+                det.forEach(function (r, i) { r.plan = num(v[i]); });
+                c.plan = det.reduce(function (a, r) { return a + r.plan; }, 0);
+                s.totals.plan = s.categories.reduce(function (a, x) { return a + x.plan; }, 0);
+              });
+            }
+          }));
+        });
+        listHost.appendChild(staffAccGroup({ title: t("staff.total_shtat"), total: s.totals.plan }));
+      }
+    }
+    renderList();
+    return wrap;
+  }
+
+  /* Tab 6: pedagogik va tibbiyot stavkalari — tibbiyot/pedagogik filtri bilan */
+  function staffStavkaPanel(s) {
+    var wrap = h("div", { class: "staff-panel" });
+    var listHost = h("div", { class: "staff-groups" });
+    var tb = staffToolbar(function () { renderList(); }, function () { renderList(); }, [
+      { value: "all", label: t("staff.filter.all") },
+      { value: "med", label: t("staff.medstaff") },
+      { value: "ped", label: t("staff.tarif.pedagog") }
+    ]);
+    wrap.appendChild(tb.el);
+    wrap.appendChild(listHost);
+    var MED = ["staff.tarif.doctors", "staff.tarif.mid_med", "staff.tarif.junior_med"];
+    var src = { "staff.tarif.doctors": s.doctors };
+    s.byTarif.forEach(function (r) { src[r.key] = r; });
+    function group(key, open) {
+      var r = src[key]; if (!r) return null;
+      return staffAccGroup({
+        title: t(key) + " stavkasi", total: r.plan, open: open,
+        rows: [
+          { label: t("staff.col.plan"), value: r.plan },
+          { label: t("staff.col.occupied"), value: r.occupied },
+          { label: t("staff.col.vacant"), value: r.vacant }
+        ],
+        onEdit: function () {
+          openEdit(t(key), [
+            { label: t("staff.col.plan"), value: r.plan, type: "number" },
+            { label: t("staff.col.occupied"), value: r.occupied, type: "number" },
+            { label: t("staff.col.vacant"), value: r.vacant, type: "number" }
+          ], function (v) { r.plan = num(v[0]); r.occupied = num(v[1]); r.vacant = num(v[2]); });
+        }
+      });
+    }
+    function renderList() {
+      listHost.innerHTML = "";
+      var f = tb.sel.value;
+      if (f !== "ped") {
+        listHost.appendChild(h("div", { class: "staff-group-heading", text: t("staff.medstaff") }));
+        MED.forEach(function (key, i) { var g = group(key, i === 0); if (g) listHost.appendChild(g); });
+        listHost.appendChild(staffAccGroup({ title: t("staff.medstaff"), total: s.medStaff.plan }));
+      }
+      if (f !== "med") {
+        listHost.appendChild(h("div", { class: "staff-group-heading", text: t("staff.tarif.pedagog") }));
+        var g = group("staff.tarif.pedagog", f === "ped"); if (g) listHost.appendChild(g);
+      }
+    }
+    renderList();
+    return wrap;
   }
 
   /* --- Material --- */

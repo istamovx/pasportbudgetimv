@@ -108,6 +108,7 @@
 .tabs { display: flex; align-items: center; gap: var(--spacing-xs); border-bottom: 1px solid var(--border-secondary); overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
+  flex: none; /* keep intrinsic width; the bar scrolls instead of tabs overlapping */
   padding: var(--spacing-md) var(--spacing-lg); font-weight: var(--font-weight-semibold);
   color: var(--text-tertiary); font-size: var(--text-sm); white-space: nowrap;
   border-bottom: 2px solid transparent; margin-bottom: -1px;
