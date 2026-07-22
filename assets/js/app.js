@@ -113,7 +113,8 @@
     ausers: function () { return global.AdminPages.users(); },
     aconstructor: function () { return global.AdminPages.konstruktor(); },
     aclassifiers: function () { return global.AdminPages.classifiers(); },
-    alogs: function () { return global.AdminPages.logs(); }
+    alogs: function () { return global.AdminPages.logs(); },
+    aorgdetail: function () { return global.AdminPages.orgDetail(); }
   };
   var ADMIN_NAV = [
     { heading: "admin.group.main" },
@@ -1826,7 +1827,7 @@
           { key: "menusUnfilled", label: t("admin.col.unfilled"), align: "right" },
           { key: "fillPct", label: t("admin.col.pct"), align: "right", render: function (r) { return Fmt.num(r.fillPct, 2) + " %"; } },
           { key: "act", label: t("common.actions"), sticky: "right", render: function (r) {
-            return UI.Button({ icon: "eye", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { adminOpenOrg(r); } });
+            return UI.Button({ icon: "eye", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { global.App.openOrgDetail(r); } });
           } }
         ],
         rows: items
@@ -2017,6 +2018,7 @@
   function orgCard(o) {
     return h("button", { class: "org-card" + (o.current ? " is-current" : ""), type: "button", title: o.name, onClick: function () {
       UI.closeModal();
+      if (ROLE === "admin") global.App.openOrgDetail(o); // admin: tanlangan tashkilot ma'lumotiga o'tish
     } }, [
       h("div", { class: "org-card__head" }, [
         h("div", { class: "org-card__icon" }, UI.icon("building")),
@@ -2105,7 +2107,7 @@
         roleItem("admin", "shield", t("role.admin"))
       ]),
       h("div", { class: "profile-panel__actions" }, [
-        ROLE === "org" ? UI.Button({ label: "Tashkilot tanlash", variant: "secondary", icon: "switch", onClick: function () { panel.classList.remove("is-open"); openOrgPicker(); } }) : null,
+        ROLE === "admin" ? UI.Button({ label: "Tashkilot tanlash", variant: "secondary", icon: "switch", onClick: function () { panel.classList.remove("is-open"); openOrgPicker(); } }) : null,
         h("button", { class: "btn btn--danger-ghost", type: "button", onClick: function () { window.location.href = "login.html"; } }, [
           UI.icon("logout"), h("span", { text: "Tizimdan chiqish" })
         ])
@@ -2216,6 +2218,7 @@
     navigate: function (id) { navigate(id); },
     refresh: function () { navigate(current); },
     openOrg: adminOpenOrg,
+    openOrgDetail: function (o) { global.AdminPages.setDetailOrg(o); navigate("aorgdetail"); },
     orgs: getMockOrgs,
     pager: orgListPager
   };

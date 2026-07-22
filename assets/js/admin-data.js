@@ -268,7 +268,97 @@
     });
   }
 
+  /* ---- Tashkilot ma'lumoti sahifasi (admin drill-in) ---- */
+  var STAFF_INT_CATS = [
+    { cat: "Umumiy kadrlar", vals: ["24.0", "7.0", "1.0", "16.0", null] },
+    { cat: "Band bo‘lgan shtat lavozimlar", vals: ["23.5", "7.0", "1.0", "15.5", null] },
+    { cat: "Shtat lavozimlarida band bo‘lgan jismoniy shaxslar", vals: ["27.0", "7.0", "2.0", "18.0", null] },
+    { cat: "Vakant shtat lavozimlar", vals: ["0.5", "0.0", "0.0", "0.5", null] }
+  ];
+  var STAFF_INT_ROWS = [];
+  STAFF_INT_CATS.forEach(function (c) {
+    [
+      ["Shtat lavozimlar", "Shtat lavozimlar soni", 0],
+      ["Shtat lavozimlar", "Boshqaruv xodimlar soni", 1],
+      ["Shtat lavozimlar", "Ishlab chiqarish xodimlar soni", 3],
+      ["Shtat lavozimlar", "Texnik xodimlar va xizmat ko‘rsatish xodimlar soni", 4],
+      ["Ta’rif ro‘yxati bo‘yicha lavozimlar", "Pedagogik stavkalar soni", 4]
+    ].forEach(function (r, i) {
+      STAFF_INT_ROWS.push({ cat: c.cat, type: r[0], pos: r[1], intId: r[2], qty: c.vals[i] == null ? "{}" : '{"1":' + c.vals[i] + "}" });
+    });
+  });
+
+  var ASSET_NAMES = [
+    "Matematika (1-qism) darslik 6-sinf (rus)-2024", "Tabiiy fanlar darslik 6-sinf (o‘zbek)-2024",
+    "Matematika darslik (1-qism) 6-sinf (o‘zbek)-2024", "Matematika darslik (1-qism) 5-sinf (rus)-2024",
+    "Ona tili (1-qism) darslik 5-sinf (rus)-2024", "O‘zbek tili 1-qism darslik 5-sinf (rus va qardosh)-2024",
+    "Matematika darslik (1-qism) 5-sinf (o‘zbek)-2024", "Adabiyot (1-qism) darslik 5-sinf (o‘zbek)-2024",
+    "Ona tili (1-qism) darslik 5-sinf (o‘zbek)-2024", "Tabiiy fanlar darslik 5-sinf (o‘zbek)-2024",
+    "Tasviriy san’at darslik 5-sinf (o‘zbek)-2024", "Musiqa darslik 5-sinf (o‘zbek)-2024",
+    "Adabiyot (2-qism) darslik 10-sinf (rus)-2024", "Adabiyot (1-qism) darslik 10-sinf (rus)-2024",
+    "Chaqiruvga qadar boshlang‘ich tayyorgarlik (darslik) 10-sinf (o‘zbek)-2024", "Jahon tarixi darslik 8-sinf (o‘zbek)-2024",
+    "Matematika darslik (2-qism) 1-sinf (rus)-2024", "Informatika va axborot texnologiyalari 5-sinf darslik rus-2024",
+    "Tabiiy fanlar 2-bo‘lim darslik 4-sinf (rus)-2024", "Fotoapparat #44354990#"
+  ];
+  var ASSETS = [];
+  for (var ai = 0; ai < 60; ai++) {
+    var qty = [90, 50, 105, 70, 40, 105, 50, 50][ai % 8];
+    ASSETS.push({
+      account: ai === 0 ? "401722860262877019909072002" : "100022860262877092100072006",
+      fio: "MAMADALIYEV BAXROMJON IKROMJON O‘G‘LI",
+      dept: "школа 100", budget: "0 - Бюджетный",
+      hisob: ai === 0 ? "221222" : "221331",
+      inv: ai === 0 ? "22122230000399" : String(22133100000877 - ai),
+      article: ai === 0 ? "4354990" : "4355300",
+      name: ASSET_NAMES[ai % ASSET_NAMES.length],
+      unit: ai === 0 ? "Комплект" : "Штука",
+      qty: ai === 0 ? 1 : qty,
+      sum: (ai === 0 ? 5100000 : qty * 31500) + (ai * 137) % 900
+    });
+  }
+
+  var ORG_DETAIL = {
+    userFields: { done: 23, total: 23 },
+    lastSync: "2026-06-19",
+    tabs: [
+      { id: "umumiy", label: "Umumiy ma’lumotlari", pct: 100, sections: [
+        { title: "Asosiy ma’lumotlari", done: 7, total: 7 },
+        { title: "Faoliyati va rejimi to‘g‘risida ma’lumot", done: 5, total: 5 },
+        { title: "Filiallar", done: 0, total: 0 },
+        { title: "Aloqa o‘rnatish bo‘yicha ma’lumotlar", done: 6, total: 6 }
+      ] },
+      { id: "joylashuv", label: "Joylashuv va ko‘rsatkichlar", pct: 0, sections: [
+        { title: "Manzil ma’lumotlari", done: 0, total: 4 },
+        { title: "Asosiy ko‘rsatkichlar", done: 0, total: 3 }
+      ] },
+      { id: "kadrlar", label: "Kadrlar bilan ishlash", pill: "1/1", integrations: [
+        { id: "staffint", title: "Xodimlar integratsiyasi", loaded: true, updated: "2026-06-19T04:29:17.915334Z" }
+      ] },
+      { id: "infra", label: "Infrostruktura", integrations: [
+        { id: "infra", title: "Infratuzilma ma’lumotlari", loaded: false }
+      ] },
+      { id: "mtb", label: "Moddiy texnik baza", pct: 100, pill: "2/2", integrations: [
+        { id: "assets", title: "Asosiy vositalar", loaded: true, updated: "2026-06-19T04:31:02.104211Z", rows: 60 },
+        { id: "transport", title: "Transport vositalari (YHXBB)", loaded: true, updated: "2026-06-19T04:32:44.551903Z", rows: 5 }
+      ] },
+      { id: "kommunal", label: "Kommunal xarajatlar", pill: "0/2", integrations: [
+        { id: "gaz", title: "Gaz ta’minoti", loaded: false },
+        { id: "elektr", title: "Elektr ta’minoti", loaded: false }
+      ] },
+      { id: "qarzlar", label: "Mavjud qarzlar", pill: "0/2", integrations: [
+        { id: "soliq_tolov", title: "Soliq to‘lovlari", loaded: false },
+        { id: "soliq_qarz", title: "Soliq qarzlari", loaded: false }
+      ] },
+      { id: "mib", label: "MIB ma’lumotlari", pill: "0/1", integrations: [
+        { id: "majburiy_ijro", title: "Majburiy ijro", loaded: false }
+      ] }
+    ],
+    staffIntegration: STAFF_INT_ROWS,
+    assets: ASSETS
+  };
+
   global.ADMIN_DATA = {
+    orgDetail: ORG_DETAIL,
     classifiers: CLASSIFIERS,
     users: USERS,
     sohalar: SOHALAR,
