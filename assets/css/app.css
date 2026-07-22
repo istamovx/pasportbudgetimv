@@ -401,6 +401,23 @@
 @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
 .mb-md { margin-bottom: var(--spacing-md); }
 
+/* ---------- Material: inventarizatsiya tanlov kartalari ---------- */
+.inv-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-lg); }
+@media (max-width: 900px) { .inv-cards { grid-template-columns: 1fr; } }
+.inv-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-lg);
+  min-height: 120px; padding: var(--spacing-2xl);
+  background: var(--bg-primary); border: 1px solid var(--border-secondary); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs); cursor: pointer; text-align: center;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+.inv-card:hover { border-color: var(--border-primary); background: var(--bg-primary-hover); }
+.inv-card.is-active { border-color: var(--border-brand); box-shadow: 0 0 0 3px var(--utility-brand-100), var(--shadow-xs); }
+.inv-card__icon { color: var(--fg-brand-primary); display: inline-flex; }
+.inv-card__icon .icon { width: 28px; height: 28px; }
+.inv-card__label { font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-secondary); overflow-wrap: anywhere; }
+.inv-card.is-active .inv-card__label { color: var(--text-brand-secondary); font-weight: var(--font-weight-semibold); }
+
 /* ---------- Staff: tabs + accordion groups ---------- */
 .tabs-wrap { display: flex; flex-direction: column; gap: var(--spacing-2xl); }
 .staff-panel { display: flex; flex-direction: column; gap: var(--spacing-xl); }
