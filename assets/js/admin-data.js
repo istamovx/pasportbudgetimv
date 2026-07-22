@@ -392,15 +392,17 @@
       BUILDINGS.push({
         region: region, regionKey: key,
         district: districts[(i * 3 + ri) % districts.length],
-        org: soha === "Sog‘liqni saqlash"
-          ? (i % 3 === 0 ? region.replace(" viloyati", "").replace(" Respublikasi", "") + " ko‘p tarmoqli tibbiyot markazi" : (100 + i) + "-oilaviy poliklinika")
-          : soha === "Umumiy ta’lim" ? "“" + (100 + i * 2 + ri) + "-sonli umumiy o‘rta ta’lim maktabi” DM"
-          : soha === "Maktabgacha ta’lim" ? (50 + i) + "-sonli MTT"
-          : soha === "Madaniyat" ? "Tuman madaniyat uyi" : "Bolalar-o‘smirlar sport maktabi",
+        org: (function (short) {
+          if (soha === "Sog‘liqni saqlash") return i % 3 === 0 ? short + " ko‘p tarmoqli tibbiyot markazi" : short + " " + (100 + i) + "-oilaviy poliklinika";
+          if (soha === "Umumiy ta’lim") return "“" + (100 + i * 2 + ri) + "-sonli maktab” DM (" + short + ")";
+          if (soha === "Maktabgacha ta’lim") return short + " " + (50 + i) + "-sonli MTT";
+          if (soha === "Madaniyat") return short + " " + (120 + i) + "-madaniyat uyi";
+          return short + " bolalar-o‘smirlar sport maktabi";
+        })(region.replace(" viloyati", "").replace(" Respublikasi", "")),
         soha: soha, type: type,
         area: 250 + ((i * 173 + ri * 97) % 4800),              // m²
         built: built, renovated: ren,
-        status: ren && ren >= 2018 ? "good" : "repair"
+        status: !ren || ren < 2008 ? "repair" : "good"
       });
     }
   });
