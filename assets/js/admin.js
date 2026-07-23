@@ -586,16 +586,21 @@
     page.appendChild(h("div", { class: "flex justify-between items-start gap-lg flex-wrap", style: "margin-bottom:var(--spacing-lg)" },
       h("button", { class: "odx-back", type: "button", onClick: function () { App.navigate("aorgs"); } }, [UI.icon("chevron-left"), h("span", { text: t("od.back_registry") })])));
 
-    // Gradient hero banner
-    page.appendChild(h("div", { class: "odx-hero" }, [
-      h("h1", { class: "odx-hero__name", text: org.name }),
-      h("div", { class: "odx-hero__badges" }, [
-        h("span", { class: "odx-badge odx-badge--ok", text: t("st.active", "Faol") }),
-        h("span", { class: "odx-badge", text: "Sog‘liqni saqlash" }),
-        h("span", { class: "odx-badge", text: (org.region || "Toshkent shahri").replace(" viloyati", "") }),
-        h("span", { class: "odx-badge", text: "Davlat muassasasi" })
+    // Sarlavha kartasi (neytral, pasport uslubida)
+    page.appendChild(h("div", { class: "card odx-head" }, [
+      h("div", { class: "odx-head__top" }, [
+        h("div", { class: "odx-head__avatar" }, UI.icon("building")),
+        h("div", { class: "odx-head__meta" }, [
+          h("h1", { class: "odx-head__name", text: org.name }),
+          h("div", { class: "odx-head__badges" }, [
+            h("span", { class: "badge badge--success", text: t("st.active", "Faol") }),
+            h("span", { class: "badge badge--dotless badge--neutral", text: "Sog‘liqni saqlash" }),
+            h("span", { class: "badge badge--dotless badge--neutral", text: (org.region || "Toshkent shahri").replace(" viloyati", "") }),
+            h("span", { class: "badge badge--dotless badge--neutral", text: "Davlat muassasasi" })
+          ])
+        ])
       ]),
-      h("div", { class: "odx-hero__facts" }, [
+      h("div", { class: "odx-head__facts" }, [
         heroFact("STIR", org.stir),
         heroFact(t("odx.org_code"), "G71"),
         heroFact(t("odx.founded"), "2000"),
