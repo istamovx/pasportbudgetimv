@@ -567,6 +567,12 @@
       rows: AD().orgDetail.assets
     });
     if (odState.view === "binoextra") return buildingExtraView();
+    if (odState.view === "sec") {
+      var secTd = null;
+      AD().orgDetail.tabs.forEach(function (x) { if (x.id === odState.tab) secTd = x; });
+      if (secTd) return sectionDetailView(secTd);
+      odState.view = null;
+    }
     if (odState.view === "transport") return integrationTable({
       title: "Transport vositalari (YHXBB)",
       cols: [
@@ -769,17 +775,43 @@
     ])));
 
     // To'ldirilganlik tablari (bo'limlar + integratsiyalar + tashkilot sahifalari)
+    // Bo'limlar — tab o'rniga status-rangli kartalar; bosilganda alohida sahifaga kiriladi
     page.appendChild(h("div", { class: "staff-group-heading", text: t("odx.fill_title") }));
-    page.appendChild(UI.Tabs({
-      active: odState.tab,
-      items: od.tabs.map(function (td) {
-        return { id: td.id, label: [h("span", { text: td.label }), odPill(td)], render: function () { odState.tab = td.id; return odTabPanel(td); } };
-      })
-    }));
+    var SEC_ICONS = { umumiy: "grid", joylashuv: "map", kadrlar: "users", infra: "box", mtb: "building", kommunal: "zap", qarzlar: "wallet", mib: "shield" };
+    page.appendChild(h("div", { class: "soha-grid" }, od.tabs.map(function (td) {
+      var st = secStatus(td);
+      var tileCls = st.pct >= 100 ? " odx-sec-tile--ok" : st.pct > 0 ? " odx-sec-tile--part" : " soha-card__tile--muted";
+      return h("button", { class: "soha-card card odx-sec-card", type: "button", onClick: function () {
+        odState.view = "sec"; odState.tab = td.id; App.refresh();
+      } }, [
+        h("div", { class: "soha-card__head" }, [
+          h("span", { class: "soha-card__tile" + tileCls }, UI.icon(SEC_ICONS[td.id] || "box")),
+          h("span", { class: "soha-card__name", text: td.label }),
+          odPill(td)
+        ]),
+        odBar(st.pct),
+        h("div", { class: "odx-sec-card__meta" }, [
+          h("span", { text: st.meta }),
+          h("span", { class: "odx-sec-card__go" }, [h("span", { text: t("odx.detail") }), UI.icon("chevron-right")])
+        ])
+      ]);
+    })));
     return page;
 
     function heroFact(label, val) {
       return h("div", { class: "odx-fact" }, [h("span", { class: "odx-fact__l", text: label }), h("b", { class: "odx-fact__v", text: val })]);
+    }
+    function secStatus(td) {
+      if (td.sections) {
+        var done = 0, total = 0;
+        td.sections.forEach(function (s) { done += s.done; total += s.total; });
+        var pct = td.pct != null ? td.pct : (total ? Math.round(done / total * 100) : 0);
+        return { pct: pct, meta: done + "/" + total + " " + t("od.fields") + " · " + td.sections.length + " " + t("odx.blocks") };
+      }
+      var ints = td.integrations || [];
+      var loaded = ints.filter(function (g) { return g.loaded; }).length;
+      var ipct = td.pct != null ? td.pct : (ints.length ? Math.round(loaded / ints.length * 100) : 0);
+      return { pct: ipct, meta: loaded + "/" + ints.length + " " + t("odx.int") };
     }
     function infoCard(icon, title, rows, open) {
       var body = h("div", { class: "odx-info__body" }, rows.map(function (r) {
@@ -886,12 +918,15 @@
     var bx = AD().buildingExtra;
     var page = h("div", { class: "page" });
 
-    var bxCrumb = UI.Crumbs([
+    var bxSecTd = currentSecTd();
+    var bxParts = [
       { label: t("nav.adashboard"), onClick: function () { App.navigate("adashboard"); } },
       { label: t("nav.aorgs"), onClick: function () { App.navigate("aorgs"); } },
-      { label: (odState.org && odState.org.name) || t("nav.aorgdetail"), onClick: function () { odState.view = null; App.refresh(); } },
-      { label: bx.name }
-    ]);
+      { label: (odState.org && odState.org.name) || t("nav.aorgdetail"), onClick: function () { odState.view = null; App.refresh(); } }
+    ];
+    if (bxSecTd) bxParts.push({ label: bxSecTd.label, onClick: function () { odState.view = "sec"; App.refresh(); } });
+    bxParts.push({ label: bx.name });
+    var bxCrumb = UI.Crumbs(bxParts);
     bxCrumb.classList.add("crumbs--page");
     page.appendChild(bxCrumb);
 
@@ -914,11 +949,17 @@
       App.kpi("refresh", t("dash.col.renovated"), bx.facts.renovated, null, "warn")
     ])));
 
-    // Bloklar — sohalar kartasi uslubida
-    page.appendChild(h("div", { class: "soha-grid" }, bx.blocks.map(function (bl, i) {
+    // Bloklar — sohalar kartasi uslubida.
+    // Tartib: "Barchasini ko'rish" tugmalilar doim tepada, tugmasizlar pastda, bo'shlar eng oxirida.
+    function blockRank(bl) { return bl.fields.length > 3 ? 0 : bl.fields.length ? 1 : 2; }
+    var orderedBlocks = bx.blocks.slice().sort(function (a, b) { return blockRank(a) - blockRank(b); });
+    page.appendChild(h("div", { class: "soha-grid" }, orderedBlocks.map(function (bl, i) {
+      var hasBtn = bl.fields.length > 3;
       var card = h("div", { class: "soha-card card bx-card" });
       card.appendChild(h("div", { class: "soha-card__head" }, [
-        h("span", { class: "soha-card__tile", style: "background:var(--chart-" + ((i % 6) + 1) + ")" }, UI.icon(bl.icon || "box")),
+        hasBtn
+          ? h("span", { class: "soha-card__tile", style: "background:var(--chart-" + ((i % 6) + 1) + ")" }, UI.icon(bl.icon || "box"))
+          : h("span", { class: "soha-card__tile soha-card__tile--muted" }, UI.icon(bl.icon || "box")),
         h("span", { class: "soha-card__name", text: bl.title }),
         h("span", { class: "bx-card__pill " + (bl.total === 0 ? "od-pill--zero" : bl.done >= bl.total ? "od-pill--ok" : "od-pill--n"), text: bl.done + "/" + bl.total })
       ]));
@@ -932,7 +973,7 @@
           h("b", { class: "soha-card__stat-v bx-card__val", text: f[1] })
         ]);
       })));
-      if (bl.fields.length > 3) {
+      if (hasBtn) {
         card.appendChild(h("div", { class: "bx-card__more" },
           UI.Button({ label: t("bx.view_all") + " (" + bl.fields.length + ")", variant: "secondary", size: "sm", icon: "eye", onClick: function () { openBlockModal(bl); } })));
       }
@@ -1044,15 +1085,48 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
 
+  /* Joriy tanlangan bo'lim (tab) ta'rifi */
+  function currentSecTd() {
+    var found = null;
+    AD().orgDetail.tabs.forEach(function (x) { if (x.id === odState.tab) found = x; });
+    return found;
+  }
+
+  /* Bo'lim sahifasi — tab o'rniga alohida drill sahifa */
+  function sectionDetailView(td) {
+    var org = odState.org || {};
+    var page = h("div", { class: "page" });
+    var crumb = UI.Crumbs([
+      { label: t("nav.adashboard"), onClick: function () { App.navigate("adashboard"); } },
+      { label: t("nav.aorgs"), onClick: function () { App.navigate("aorgs"); } },
+      { label: org.name || t("nav.aorgdetail"), onClick: function () { odState.view = null; App.refresh(); } },
+      { label: td.label }
+    ]);
+    crumb.classList.add("crumbs--page");
+    page.appendChild(crumb);
+    page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
+      h("div", {}, [
+        h("h1", { class: "page__title", text: td.label }),
+        h("p", { class: "page__desc", text: org.name || "" })
+      ]),
+      h("div", { class: "flex items-center gap-md" }, odPill(td))
+    ]));
+    page.appendChild(h("div", { class: "section" }, odTabPanel(td)));
+    return page;
+  }
+
   /* Integratsiya jadvali (drill-in sahifa) */
   function integrationTable(opts) {
     var page = h("div", { class: "page" });
-    var intCrumb = UI.Crumbs([
+    var secTd = currentSecTd();
+    var intParts = [
       { label: t("nav.adashboard"), onClick: function () { App.navigate("adashboard"); } },
       { label: t("nav.aorgs"), onClick: function () { App.navigate("aorgs"); } },
-      { label: (odState.org && odState.org.name) || t("nav.aorgdetail"), onClick: function () { odState.view = null; App.refresh(); } },
-      { label: opts.title }
-    ]);
+      { label: (odState.org && odState.org.name) || t("nav.aorgdetail"), onClick: function () { odState.view = null; App.refresh(); } }
+    ];
+    if (secTd) intParts.push({ label: secTd.label, onClick: function () { odState.view = "sec"; App.refresh(); } });
+    intParts.push({ label: opts.title });
+    var intCrumb = UI.Crumbs(intParts);
     intCrumb.classList.add("crumbs--page");
     page.appendChild(intCrumb);
     page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
@@ -1065,7 +1139,7 @@
       ]),
       h("div", { class: "flex gap-md flex-wrap" }, [
         UI.Button({ label: t("od.excel"), variant: "secondary", icon: "download", onClick: function () { exportCsv(opts); } }),
-        UI.Button({ label: t("common.back"), variant: "secondary", icon: "chevron-left", onClick: function () { odState.view = null; App.refresh(); } })
+        UI.Button({ label: t("common.back"), variant: "secondary", icon: "chevron-left", onClick: function () { odState.view = currentSecTd() ? "sec" : null; App.refresh(); } })
       ])
     ]));
 
@@ -1756,6 +1830,11 @@
   global.AdminPages = {
     dashboard: renderDashboard,
     sohalar: renderSohalarPage,
+    /* Sidebar bosilganda sahifa ichki drill holatini tozalash — doim ildizga o'tiladi */
+    resetDrill: function (id) {
+      if (id === "asohalar") { sohaPageState.sel = null; sohaPageState.region = null; sohaPageState.district = null; }
+      if (id === "adashboard") { dashState.region = null; dashState.district = null; }
+    },
     orgManage: renderOrgManage,
     users: renderUsers,
     classifiers: renderClassifiers,

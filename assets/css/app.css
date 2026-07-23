@@ -652,6 +652,16 @@
 /* ---------- Admin: bino bloklari (Excel building_extra) ---------- */
 .bx-card { cursor: default; }
 .bx-card:hover { transform: none; }
+.soha-card__tile--muted { background: var(--bg-secondary); color: var(--fg-quaternary); border: 1px solid var(--border-secondary); }
+
+/* Tashkilot bo'limlari kartalari (tab o'rniga) */
+.odx-sec-card { width: 100%; }
+.odx-sec-card .soha-card__name { flex: 1; }
+.odx-sec-tile--ok { background: var(--utility-success-500, #17b26a); }
+.odx-sec-tile--part { background: var(--utility-warning-500, #f79009); }
+.odx-sec-card__meta { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); color: var(--text-tertiary); font-size: var(--text-sm); }
+.odx-sec-card__go { display: inline-flex; align-items: center; gap: 2px; color: var(--text-brand-secondary); font-weight: var(--font-weight-semibold); white-space: nowrap; }
+.odx-sec-card__go .icon { width: 16px; height: 16px; }
 .bx-card__pill {
   display: inline-flex; align-items: center; margin-left: auto; flex: none;
   border-radius: var(--radius-full); padding: 1px var(--spacing-md);

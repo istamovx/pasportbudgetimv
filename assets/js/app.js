@@ -1931,7 +1931,10 @@
     if (!isAdminHome()) nav.appendChild(h("div", { class: "sidebar__nav-label", "data-i18n": "nav.menu", text: t("nav.menu") }));
     currentNavItems().forEach(function (item) {
       if (item.heading) { nav.appendChild(h("div", { class: "sidebar__nav-label", text: t(item.heading) })); return; }
-      var el = h("button", { class: "nav-item", type: "button", dataset: { label: t("nav." + item.id) }, onClick: function () { navigate(item.id); } }, [
+      var el = h("button", { class: "nav-item", type: "button", dataset: { label: t("nav." + item.id) }, onClick: function () {
+        if (global.AdminPages && global.AdminPages.resetDrill) global.AdminPages.resetDrill(item.id);
+        navigate(item.id);
+      } }, [
         h("span", { class: "nav-item__icon" }, UI.icon(item.icon)),
         h("span", { class: "nav-item__label", "data-i18n": "nav." + item.id, text: t("nav." + item.id) })
       ]);
