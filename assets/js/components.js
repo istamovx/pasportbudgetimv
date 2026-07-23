@@ -342,6 +342,18 @@
   }
   function stickyClass(s) { return s === "left" ? "col-sticky-left" : s === "right" ? "col-sticky-right" : ""; }
 
+  /* ---- Breadcrumbs: parts = [{label, onClick?}] — oxirgisi joriy sahifa ---- */
+  function Crumbs(parts) {
+    var row = h("nav", { class: "crumbs", "aria-label": "Breadcrumb" });
+    parts.forEach(function (p, i) {
+      if (i) row.appendChild(h("span", { class: "crumbs__sep" }, icon("chevron-right")));
+      row.appendChild(p.onClick
+        ? h("button", { class: "crumbs__link", type: "button", onClick: p.onClick }, h("span", { text: p.label }))
+        : h("span", { class: "crumbs__cur", text: p.label }));
+    });
+    return row;
+  }
+
   /* ---- Drawer (single instance, mounted to body) ---- */
   var drawerEl = null, scrimEl = null;
   function ensureDrawer() {
@@ -426,7 +438,7 @@
     h: h, append: append, icon: icon, ICONS: ICONS,
     EmptyState: EmptyState, Button: Button, StatusBadge: StatusBadge,
     KpiCard: KpiCard, FormField: FormField, Select: Select, Tabs: Tabs, Segmented: Segmented,
-    DataTable: DataTable, openDrawer: openDrawer, closeDrawer: closeDrawer,
+    DataTable: DataTable, Crumbs: Crumbs, openDrawer: openDrawer, closeDrawer: closeDrawer,
     openModal: openModal, closeModal: closeModal, editButton: editButton
   };
 })(window);

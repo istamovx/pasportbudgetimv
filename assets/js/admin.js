@@ -585,9 +585,14 @@
     var page = h("div", { class: "page" });
     var pctAll = od.userFields.total ? Math.round(od.userFields.done / od.userFields.total * 100) : 0;
 
-    // Qaytish (tashkilot roliga o'tilmaydi — barcha ma'lumot shu sahifada)
-    page.appendChild(h("div", { class: "flex justify-between items-start gap-lg flex-wrap", style: "margin-bottom:var(--spacing-lg)" },
-      h("button", { class: "odx-back", type: "button", onClick: function () { App.navigate("aorgs"); } }, [UI.icon("chevron-left"), h("span", { text: t("od.back_registry") })])));
+    // To'liq yo'l (tashkilot roliga o'tilmaydi — barcha ma'lumot shu sahifada)
+    var odCrumb = UI.Crumbs([
+      { label: t("nav.adashboard"), onClick: function () { App.navigate("adashboard"); } },
+      { label: t("nav.aorgs"), onClick: function () { App.navigate("aorgs"); } },
+      { label: org.name }
+    ]);
+    odCrumb.classList.add("crumbs--page");
+    page.appendChild(odCrumb);
 
     // Sarlavha kartasi (neytral, pasport uslubida)
     page.appendChild(h("div", { class: "card odx-head" }, [
@@ -881,11 +886,14 @@
     var bx = AD().buildingExtra;
     var page = h("div", { class: "page" });
 
-    page.appendChild(h("div", { class: "crumbs", style: "margin-bottom:var(--spacing-lg)" }, [
-      h("button", { class: "crumbs__link", type: "button", onClick: function () { odState.view = null; App.refresh(); } }, h("span", { text: t("bx.back") })),
-      h("span", { class: "crumbs__sep" }, UI.icon("chevron-right")),
-      h("span", { class: "crumbs__cur", text: bx.name })
-    ]));
+    var bxCrumb = UI.Crumbs([
+      { label: t("nav.adashboard"), onClick: function () { App.navigate("adashboard"); } },
+      { label: t("nav.aorgs"), onClick: function () { App.navigate("aorgs"); } },
+      { label: (odState.org && odState.org.name) || t("nav.aorgdetail"), onClick: function () { odState.view = null; App.refresh(); } },
+      { label: bx.name }
+    ]);
+    bxCrumb.classList.add("crumbs--page");
+    page.appendChild(bxCrumb);
 
     page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
       h("div", {}, [
@@ -949,6 +957,14 @@
   /* Integratsiya jadvali (drill-in sahifa) */
   function integrationTable(opts) {
     var page = h("div", { class: "page" });
+    var intCrumb = UI.Crumbs([
+      { label: t("nav.adashboard"), onClick: function () { App.navigate("adashboard"); } },
+      { label: t("nav.aorgs"), onClick: function () { App.navigate("aorgs"); } },
+      { label: (odState.org && odState.org.name) || t("nav.aorgdetail"), onClick: function () { odState.view = null; App.refresh(); } },
+      { label: opts.title }
+    ]);
+    intCrumb.classList.add("crumbs--page");
+    page.appendChild(intCrumb);
     page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
       h("div", {}, [
         h("h1", { class: "page__title", text: opts.title }),
@@ -1168,6 +1184,9 @@
     var maxVal = Math.max.apply(null, Object.keys(regionVals).map(function (k) { return regionVals[k]; })) || 1;
 
     var page = h("div", { class: "page" });
+    var rootCrumb = UI.Crumbs([{ label: t("dash.title") }]);
+    rootCrumb.classList.add("crumbs--page");
+    page.appendChild(rootCrumb);
     page.appendChild(pageHead(t("dash.title"), t("dash.desc")));
 
     // Metric kartalar — bosilsa butun dashboard shu metrikaga saralanadi
@@ -1493,6 +1512,12 @@
   function renderSohalarPage() {
     if (sohaPageState.sel) return sohaDetailPage(sohaPageState.sel);
     var page = h("div", { class: "page" });
+    var rootCrumb = UI.Crumbs([
+      { label: t("nav.adashboard"), onClick: function () { App.navigate("adashboard"); } },
+      { label: t("page.asohalar.title") }
+    ]);
+    rootCrumb.classList.add("crumbs--page");
+    page.appendChild(rootCrumb);
     page.appendChild(pageHead(t("page.asohalar.title"), t("page.asohalar.desc")));
     page.appendChild(h("div", { class: "soha-grid" }, AD().sohalar.map(function (s, i) {
       var st = sohaStats(s, i);
@@ -1540,19 +1565,13 @@
   function sohaCrumbs() {
     var st = sohaPageState;
     var parts = [
+      { label: t("nav.adashboard"), onClick: function () { App.navigate("adashboard"); } },
       { label: t("page.asohalar.title"), onClick: function () { st.sel = null; st.region = null; st.district = null; App.refresh(); } },
       { label: st.sel.name, onClick: st.region ? function () { st.region = null; st.district = null; App.refresh(); } : null }
     ];
     if (st.region) parts.push({ label: st.region, onClick: st.district ? function () { st.district = null; App.refresh(); } : null });
     if (st.district) parts.push({ label: st.district, onClick: null });
-    var row = h("div", { class: "crumbs" });
-    parts.forEach(function (p, idx) {
-      if (idx) row.appendChild(h("span", { class: "crumbs__sep" }, UI.icon("chevron-right")));
-      row.appendChild(p.onClick
-        ? h("button", { class: "crumbs__link", type: "button", onClick: p.onClick }, h("span", { text: p.label }))
-        : h("span", { class: "crumbs__cur", text: p.label }));
-    });
-    return row;
+    return UI.Crumbs(parts);
   }
 
   function drillTable(cols, rows, onRow) {

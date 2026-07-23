@@ -1713,6 +1713,7 @@
     if (locationMap) { try { locationMap.remove(); } catch (e) {} locationMap = null; }
     mainEl.innerHTML = "";
     var node = reg[id]();
+    injectCrumbs(node, id);
     mainEl.appendChild(node);
     mountSparklines(node);
     // update nav active + header title
@@ -1720,6 +1721,24 @@
     document.getElementById("header-title").textContent = t("nav." + id);
     closeMobileSidebar();
     mainEl.scrollTop = 0; window.scrollTo(0, 0);
+  }
+
+  /* Markaziy breadcrumb: har sahifa tepasida to'liq yo'l ko'rinadi.
+     O'z ichki zanjirini boshqaradigan drill sahifalar mustasno. */
+  var CRUMB_SELF_MANAGED = { adashboard: 1, asohalar: 1, aorgdetail: 1 };
+  function injectCrumbs(node, id) {
+    if (CRUMB_SELF_MANAGED[id]) return;
+    var rootId = isAdminHome() ? "adashboard" : "general";
+    var parts = [];
+    if (id === rootId) {
+      parts.push({ label: t("nav." + id) });
+    } else {
+      parts.push({ label: t("nav." + rootId), onClick: function () { navigate(rootId); } });
+      parts.push({ label: t("nav." + id) });
+    }
+    var bar = UI.Crumbs(parts);
+    bar.classList.add("crumbs--page");
+    node.insertBefore(bar, node.firstChild);
   }
 
   /* ------------------------- Admin sahifalari --------------------------- */

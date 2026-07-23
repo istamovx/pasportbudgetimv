@@ -625,6 +625,9 @@
 .crumbs__cur { color: var(--text-primary); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); padding: 2px var(--spacing-sm); }
 .crumbs__sep { display: inline-flex; color: var(--fg-quaternary); }
 .crumbs__sep .icon { width: 14px; height: 14px; }
+.crumbs--page { margin-bottom: var(--spacing-lg); }
+/* Uzun nomlar (masalan tashkilot nomi) qisqartiriladi */
+.crumbs__link, .crumbs__link span, .crumbs__cur { max-width: min(420px, 52vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
 
 /* ---------- Admin: sohalar kartalari ---------- */
 .soha-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-lg); }
