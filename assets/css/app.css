@@ -630,6 +630,17 @@
 .crumbs__cur { color: var(--text-primary); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); padding: 2px var(--spacing-sm); }
 .crumbs__sep { display: inline-flex; color: var(--fg-quaternary); }
 .crumbs__sep .icon { width: 14px; height: 14px; }
+.crumbs__backbtn {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px var(--spacing-md) 2px var(--spacing-sm);
+  border: 1px solid var(--border-secondary); border-radius: var(--radius-full);
+  background: var(--bg-primary); color: var(--text-secondary);
+  font-size: var(--text-sm); font-weight: var(--font-weight-semibold);
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+.crumbs__backbtn:hover { color: var(--text-brand-secondary); border-color: var(--border-brand); background: var(--utility-brand-50); }
+.crumbs__backbtn .icon { width: 16px; height: 16px; }
+.crumbs__divider { width: 1px; height: 16px; background: var(--border-secondary); margin: 0 var(--spacing-sm); flex: none; }
 .crumbs--page { margin-bottom: var(--spacing-lg); }
 /* Uzun nomlar (masalan tashkilot nomi) qisqartiriladi */
 .crumbs__link, .crumbs__link span, .crumbs__cur { max-width: min(420px, 52vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
