@@ -900,8 +900,9 @@
         h("h1", { class: "page__title", text: bx.name }),
         h("p", { class: "page__desc", text: t("bx.desc") })
       ]),
-      h("div", { class: "flex items-center gap-md" }, [
-        h("span", { class: "badge badge--dotless badge--success", text: t("odx.kpi.fill") + ": " + bx.fill.done + " / " + bx.fill.total })
+      h("div", { class: "flex items-center gap-md flex-wrap" }, [
+        h("span", { class: "badge badge--dotless badge--success", text: t("odx.kpi.fill") + ": " + bx.fill.done + " / " + bx.fill.total }),
+        UI.Button({ label: t("bx.excel"), variant: "primary", icon: "download", onClick: function () { exportBuildingExcel(bx); } })
       ])
     ]));
 
@@ -940,18 +941,107 @@
     return page;
 
     function openBlockModal(bl) {
+      var rows = bl.fields.map(function (f) { return { k: f[0], v: f[1] }; });
+      var numeric = [];
+      bl.fields.forEach(function (f) {
+        // Yil va sana ko'rsatkichlari grafikda ma'nosiz — faqat jadvalda qoladi
+        if (/yil|sana/i.test(f[0])) return;
+        var n = parseNumVal(f[1]);
+        if (n != null) numeric.push({ label: f[0], value: n });
+      });
+
+      var host = h("div");
+      var view = "table";
+      var seg = UI.Segmented({
+        value: view,
+        items: [
+          { id: "table", label: t("common.table_view"), icon: "table" },
+          { id: "chart", label: t("common.chart_view"), icon: "chart" }
+        ],
+        onChange: function (v) { view = v; renderView(); }
+      });
+
+      function renderView() {
+        host.innerHTML = "";
+        if (view === "table") {
+          host.appendChild(h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" }, UI.DataTable({
+            columns: [
+              { key: "k", label: t("bx.col_field") },
+              { key: "v", label: t("bx.col_value"), align: "right", strong: true }
+            ],
+            rows: rows
+          }))));
+        } else {
+          if (!numeric.length) { host.appendChild(UI.EmptyState({ icon: "chart", title: t("bx.chart_empty") })); return; }
+          var hgt = Math.max(220, numeric.length * 34 + 70);
+          var canvas = h("canvas");
+          host.appendChild(h("div", { class: "chart-frame", style: "height:" + hgt + "px" }, canvas));
+          requestAnimationFrame(function () {
+            Charts.make(canvas, Charts.bar({
+              labels: numeric.map(function (x) { return x.label; }),
+              datasets: [{ label: bl.title, values: numeric.map(function (x) { return x.value; }) }]
+            }, { horizontal: true }));
+          });
+        }
+      }
+      renderView();
+
       UI.openModal({
-        size: "sm",
+        size: "md",
         title: bl.title,
         desc: bx.name + " · " + bl.done + "/" + bl.total + " " + t("od.fields"),
-        body: h("div", { class: "bx-modal-rows" }, bl.fields.map(function (f) {
-          return h("div", { class: "odx-info__row" }, [
-            h("span", { class: "odx-info__label", text: f[0] }),
-            h("span", { class: "odx-info__value", text: f[1] })
-          ]);
-        }))
+        body: h("div", {}, [h("div", { class: "bx-modal__bar" }, seg), host])
       });
     }
+  }
+
+  /* Qiymat satridan sonni ajratib olish: "13 605 m²" -> 13605, "3,5 mlrd" -> 3.5 */
+  function parseNumVal(v) {
+    var s = String(v).replace(/\u00a0/g, " ").trim();
+    var m = s.match(/^(\d[\d ]*(?:[.,]\d+)?)/);
+    if (!m) return null;
+    var n = parseFloat(m[1].replace(/\s/g, "").replace(",", "."));
+    return isFinite(n) ? n : null;
+  }
+
+  /* Barcha bloklarni bezatilgan Excel (.xls) hisobot qilib yuklab beradi */
+  function exportBuildingExcel(bx) {
+    function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    var B = "border:1px solid #EAECF0;padding:6px 12px;";
+    var rows = [];
+    rows.push('<tr><td colspan="3" style="font-size:16pt;font-weight:bold;padding:12px;color:#101828;border-bottom:3px solid #1570EF">' + esc(bx.name) + "</td></tr>");
+    rows.push('<tr><td colspan="3" style="color:#475467;padding:6px 12px 14px">' + esc(t("bx.desc")) + " " + esc(t("odx.kpi.fill")) + ": " + bx.fill.done + " / " + bx.fill.total + "</td></tr>");
+    bx.blocks.forEach(function (bl) {
+      rows.push('<tr><td colspan="3" style="background:#1570EF;color:#ffffff;font-weight:bold;font-size:12pt;padding:8px 12px;border:1px solid #1570EF">' + esc(bl.title) + " (" + bl.done + "/" + bl.total + ")</td></tr>");
+      if (!bl.fields.length) {
+        rows.push('<tr><td colspan="3" style="' + B + 'color:#98A2B3;font-style:italic">' + esc(t("bx.none")) + "</td></tr>");
+      } else {
+        rows.push('<tr>' +
+          '<td style="' + B + 'background:#F9FAFB;font-weight:bold;color:#475467" align="center">T/R</td>' +
+          '<td style="' + B + 'background:#F9FAFB;font-weight:bold;color:#475467">' + esc(t("bx.col_field")) + "</td>" +
+          '<td style="' + B + 'background:#F9FAFB;font-weight:bold;color:#475467" align="right">' + esc(t("bx.col_value")) + "</td></tr>");
+        bl.fields.forEach(function (f, i) {
+          var zebra = i % 2 ? "background:#FCFCFD;" : "";
+          rows.push("<tr>" +
+            '<td style="' + B + zebra + 'color:#98A2B3" align="center">' + (i + 1) + "</td>" +
+            '<td style="' + B + zebra + '">' + esc(f[0]) + "</td>" +
+            '<td style="' + B + zebra + 'font-weight:bold" align="right">' + esc(f[1]) + "</td></tr>");
+        });
+      }
+      rows.push('<tr><td colspan="3" style="padding:6px;border:none"></td></tr>');
+    });
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8">' +
+      "<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Bino pasporti</x:Name>" +
+      "<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>" +
+      '<body><table style="border-collapse:collapse;font-family:Arial;font-size:11pt">' +
+      '<col width="52"><col width="380"><col width="240">' +
+      rows.join("") + "</table></body></html>";
+    var blob = new Blob(["﻿" + html], { type: "application/vnd.ms-excel;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "bino-pasporti-hisobot.xls";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
 
   /* Integratsiya jadvali (drill-in sahifa) */

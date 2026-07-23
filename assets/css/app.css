@@ -658,6 +658,9 @@
   font-size: var(--text-xs); font-weight: var(--font-weight-semibold); line-height: 1.6;
 }
 .bx-card__val { font-size: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Label ham bir qatorda — sig'masa "..." bilan qisqaradi */
+.bx-card .soha-card__stat-l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bx-modal__bar { display: flex; justify-content: flex-end; }
 .bx-card__empty { color: var(--text-quaternary); font-size: var(--text-sm); }
 .bx-card__more { display: flex; justify-content: flex-end; margin-top: auto; padding-top: var(--spacing-lg); border-top: 1px solid var(--border-secondary); }
 .bx-modal-rows { max-height: min(60vh, 520px); overflow-y: auto; padding-right: var(--spacing-xs); }
@@ -857,6 +860,7 @@
 }
 .modal.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
 .modal--sm { width: min(440px, calc(100vw - var(--spacing-3xl))); }
+.modal--md { width: min(720px, calc(100vw - var(--spacing-3xl))); }
 .modal--full { width: min(1200px, calc(100vw - var(--spacing-3xl))); height: calc(100vh - var(--spacing-6xl)); }
 .modal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-lg); padding: var(--spacing-2xl) var(--spacing-3xl); border-bottom: 1px solid var(--border-secondary); }
 .modal__title { font-size: var(--text-xl); line-height: var(--text-xl-lh); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
