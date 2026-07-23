@@ -614,61 +614,10 @@
       App.kpi("shield", t("odx.kpi.errors"), 0, null, "")
     ])));
 
-    // 2 ustunli asosiy grid
-    var leftCol = h("div", { class: "odx-col" });
-    var rightCol = h("div", { class: "odx-col" });
-
-    // Rekvizitlar
-    // Rekvizitlar — hero'da chiqqan STIR/kod/yil/holat BU YERDA TAKRORLANMAYDI,
-    // faqat qo'shimcha rekvizitlar ko'rsatiladi
-    leftCol.appendChild(infoCard("clipboard", t("odx.rekvizit"), [
-      [t("g.oked"), "72110"],
-      [t("g.cadastre_date"), "14.12.2022"],
-      [t("g.doc_organ"), "Prezident Farmoni — № 5130, 27.05.2021"],
-      [t("g.stat_cert"), "Mavjud"],
-      [t("g.rental"), "Ijarada turmaydi"]
-    ], true));
-
-    // Rahbar va aloqa
+    /* =============== Infografika bloklari (asosiy til — vizual) =========== */
     var dep = (D.general.deputies || [])[0] || { name: "—", phone: "—" };
-    leftCol.appendChild(infoCard("users", t("odx.leader"), [
-      [t("odx.leader_name"), dep.name], ["Telefon", dep.phone],
-      [t("odx.address"), "Toshkent shahri, Yakkasaroy tumani"]
-    ], true));
 
-    // Bank va xazina hisobvaraqlari
-    leftCol.appendChild(infoCard("wallet", t("odx.bank"), (D.general.dts.accounts || []).map(function (a) {
-      return [t(a.key), a.end != null ? Fmt.currency(a.end) : "—"];
-    }), false));
-
-    // Ko'chmas mulk
-    var fac = D.material.facility || { rooms: [], areas: [] };
-    var roomsTotal = (fac.rooms || []).reduce(function (a, b) { return a + b; }, 0);
-    var areaTotal = (fac.areas || []).reduce(function (a, b) { return a + b; }, 0);
-    leftCol.appendChild(infoCard("building", t("odx.realty"), [
-      [t("odx.bld_count"), Fmt.num(D.location.buildings.length) + " ta"],
-      [t("odx.rooms"), Fmt.num(roomsTotal) + " ta"],
-      [t("dash.kpi.area"), Fmt.num(Math.round(areaTotal)) + " m²"]
-    ], false));
-
-    // Joylashuv kartasi (belgilangan joy bilan)
-    var b0 = D.location.buildings[0] || { lat: 41.311, lng: 69.279 };
-    var mapEl = h("div", { class: "odx-map", id: "odx-map" });
-    leftCol.appendChild(h("div", { class: "card" }, [
-      h("div", { class: "card__head" }, h("div", {}, [h("div", { class: "card__title", text: t("odx.location") }), h("div", { class: "card__subtitle", text: b0.city + ", " + b0.district })])),
-      h("div", { class: "card__body" }, mapEl)
-    ]));
-    setTimeout(function () {
-      if (!global.L || !mapEl.isConnected) return;
-      try {
-        var m = global.L.map(mapEl, { scrollWheelZoom: false }).setView([b0.lat, b0.lng], 16);
-        global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 20, attribution: "© OpenStreetMap" }).addTo(m);
-        global.L.circle([b0.lat, b0.lng], { radius: 120, color: "#1570ef", fillColor: "#1570ef", fillOpacity: 0.15, weight: 2 }).addTo(m);
-        global.L.marker([b0.lat, b0.lng]).addTo(m).bindPopup("<b>" + org.name + "</b><br>" + b0.city + ", " + b0.district).openPopup();
-      } catch (e) {}
-    }, 60);
-
-    // O'ng ustun: aktivlar donut
+    // A qatori: Aktivlar taqsimoti (markazli donut) | Kadrlar holati (bar)
     var DIST = [
       ["Binolar va inshootlar", 40.4], ["Mashina va uskunalar", 23.2], ["Transport vositalari", 14.1],
       ["Inventar va jihozlar", 13.1], ["Yer resurslari", 7.1], ["Boshqa asosiy vositalar", 2.2]
@@ -681,13 +630,13 @@
         h("b", { class: "odx-legend__val", text: d[1] + "%" })
       ]);
     }));
-    rightCol.appendChild(h("div", { class: "card" }, [
+    var assetsCard = h("div", { class: "card" }, [
       h("div", { class: "card__head" }, h("div", {}, h("div", { class: "card__title", text: t("odx.assets_dist") }))),
       h("div", { class: "card__body" }, [
         h("div", { class: "odx-donut" }, [donutCanvas, h("div", { class: "odx-donut__center" }, [h("b", { text: Fmt.num(assetsTotal) + " mln" }), h("span", { text: t("odx.kpi.assets").toLowerCase() })])]),
         legend
       ])
-    ]));
+    ]);
     setTimeout(function () {
       if (!global.Chart || !donutCanvas.isConnected) return;
       var css = getComputedStyle(document.documentElement);
@@ -702,8 +651,32 @@
       } catch (e) {}
     }, 60);
 
-    // To'ldirilganlik — bo'limlar kesimida (KPI dagi umumiy foizni takrorlamaydi)
-    rightCol.appendChild(h("div", { class: "card" }, [
+    var kadrCard = Charts.ChartCard({
+      title: t("odx.staff_chart"), subtitle: t("nav.staff"),
+      type: "bar",
+      data: {
+        labels: [t("staff.col.plan"), t("staff.col.occupied"), t("staff.col.physical"), t("staff.col.vacant")],
+        datasets: [{ label: t("odx.kpi.staff"), values: [D.staff.totals.plan, D.staff.totals.occupied, D.staff.totals.physical, D.staff.totals.vacant], color: "1" }]
+      },
+      height: 300
+    });
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [assetsCard, kadrCard])));
+
+    // B qatori: DTS mablag'lari (kirim/chiqim) | To'ldirilganlik bo'limlar kesimida
+    var dts = D.general.dts.accounts || [];
+    var dtsCard = Charts.ChartCard({
+      title: t("odx.dts_chart"), subtitle: t("odx.bank"),
+      type: "bar", barOpts: { horizontal: true },
+      data: {
+        labels: dts.map(function (a) { return t(a.key); }),
+        datasets: [
+          { label: t("odx.income"), values: dts.map(function (a) { return a.income || 0; }), color: "positive" },
+          { label: t("odx.expense"), values: dts.map(function (a) { return a.expense || 0; }), color: "negative" }
+        ]
+      },
+      height: 300
+    });
+    var fillCard = h("div", { class: "card" }, [
       h("div", { class: "card__head" }, h("div", {}, h("div", { class: "card__title", text: t("odx.fill_by_tab") }))),
       h("div", { class: "card__body odx-fillist" }, od.tabs.map(function (td) {
         var pct = td.pct != null ? td.pct : (td.integrations
@@ -715,19 +688,72 @@
           h("span", { class: "odx-fillist__pct", text: pct + "%" })
         ]);
       }))
-    ]));
+    ]);
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [dtsCard, fillCard])));
 
-    // O'zgarishlar tarixi
-    rightCol.appendChild(h("div", { class: "card" }, [
+    // C qatori: Joylashuv (belgilangan karta) | Transport donut + O'zgarishlar tarixi
+    var b0 = D.location.buildings[0] || { lat: 41.311, lng: 69.279 };
+    var mapEl = h("div", { class: "odx-map", id: "odx-map" });
+    var mapCard = h("div", { class: "card" }, [
+      h("div", { class: "card__head" }, h("div", {}, [h("div", { class: "card__title", text: t("odx.location") }), h("div", { class: "card__subtitle", text: b0.city + ", " + b0.district })])),
+      h("div", { class: "card__body" }, mapEl)
+    ]);
+    setTimeout(function () {
+      if (!global.L || !mapEl.isConnected) return;
+      try {
+        var m = global.L.map(mapEl, { scrollWheelZoom: false }).setView([b0.lat, b0.lng], 16);
+        global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 20, attribution: "© OpenStreetMap" }).addTo(m);
+        global.L.circle([b0.lat, b0.lng], { radius: 120, color: "#1570ef", fillColor: "#1570ef", fillOpacity: 0.15, weight: 2 }).addTo(m);
+        global.L.marker([b0.lat, b0.lng]).addTo(m).bindPopup("<b>" + org.name + "</b><br>" + b0.city + ", " + b0.district).openPopup();
+      } catch (e) {}
+    }, 60);
+
+    var byModel = {};
+    (D.material.vehicles || []).forEach(function (v) { byModel[v.model] = (byModel[v.model] || 0) + 1; });
+    var transCard = Charts.ChartCard({
+      title: t("material.by_model"), subtitle: t("material.transport"),
+      type: "doughnut",
+      data: { labels: Object.keys(byModel), values: Object.keys(byModel).map(function (k) { return byModel[k]; }) },
+      height: 200
+    });
+    var histCard = h("div", { class: "card" }, [
       h("div", { class: "card__head" }, h("div", {}, h("div", { class: "card__title", text: t("odx.history") }))),
       h("div", { class: "card__body odx-timeline" }, [
         timeItem(t("odx.h1"), "2026-06-19 · UZASBO"),
         timeItem(t("odx.h2"), "2026-06-01 · " + dep.name.split(" ")[0]),
         timeItem(t("odx.h3"), "2026-05-12 · YHXBB")
       ])
-    ]));
+    ]);
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:2;--cols-md:1" }, [
+      mapCard,
+      h("div", { class: "odx-col" }, [transCard, histCard])
+    ])));
 
-    page.appendChild(h("div", { class: "section odx-grid" }, [leftCol, rightCol]));
+    // D qatori: ma'lumotnoma kartalari (yig'iladigan, takrorsiz)
+    var fac = D.material.facility || { rooms: [], areas: [] };
+    var roomsTotal = (fac.rooms || []).reduce(function (a, b) { return a + b; }, 0);
+    var areaTotal = (fac.areas || []).reduce(function (a, b) { return a + b; }, 0);
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "odx-secs" }, [
+      infoCard("clipboard", t("odx.rekvizit"), [
+        [t("g.oked"), "72110"],
+        [t("g.cadastre_date"), "14.12.2022"],
+        [t("g.doc_organ"), "Prezident Farmoni — № 5130, 27.05.2021"],
+        [t("g.stat_cert"), "Mavjud"],
+        [t("g.rental"), "Ijarada turmaydi"]
+      ], false),
+      infoCard("users", t("odx.leader"), [
+        [t("odx.leader_name"), dep.name], ["Telefon", dep.phone],
+        [t("odx.address"), "Toshkent shahri, Yakkasaroy tumani"]
+      ], false),
+      infoCard("wallet", t("odx.bank"), dts.map(function (a) {
+        return [t(a.key), a.end != null ? Fmt.currency(a.end) : "—"];
+      }), false),
+      infoCard("building", t("odx.realty"), [
+        [t("odx.bld_count"), Fmt.num(D.location.buildings.length) + " ta"],
+        [t("odx.rooms"), Fmt.num(roomsTotal) + " ta"],
+        [t("dash.kpi.area"), Fmt.num(Math.round(areaTotal)) + " m²"]
+      ], false)
+    ])));
 
     // To'ldirilganlik tablari (bo'limlar + integratsiyalar + tashkilot sahifalari)
     page.appendChild(h("div", { class: "staff-group-heading", text: t("odx.fill_title") }));
