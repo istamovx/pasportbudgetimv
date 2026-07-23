@@ -104,6 +104,9 @@
 .table tbody tr:hover td.col-sticky-left,
 .table tbody tr:hover td.col-sticky-right { background: var(--bg-primary-hover); }
 
+/* Qator o'zi bosiladigan jadval (Amallar tugmalari alohida ishlayveradi) */
+.table tbody tr.row-click { cursor: pointer; }
+
 /* ---------- Tabs (scrollable, no duplicate-in-overflow bug) ---------- */
 .tabs { display: flex; align-items: center; gap: var(--spacing-xs); border-bottom: 1px solid var(--border-secondary); overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }

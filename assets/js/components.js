@@ -311,6 +311,14 @@
     var tbody = h("tbody");
     opts.rows.forEach(function (row) {
       var tr = h("tr");
+      if (opts.onRow) {
+        // Qator to'liq bosiladi; ichidagi tugmalar (ko'z va h.k.) o'z ishini qiladi
+        tr.classList.add("row-click");
+        tr.addEventListener("click", function (e) {
+          if (e.target.closest("button, a, input, .select-ui")) return;
+          opts.onRow(row);
+        });
+      }
       cols.forEach(function (c) {
         var content = c.render ? c.render(row) : row[c.key];
         var td = h("td", {
