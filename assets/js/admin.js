@@ -713,7 +713,7 @@
     // C qatori: Joylashuv (belgilangan karta) | Transport donut + O'zgarishlar tarixi
     var b0 = D.location.buildings[0] || { lat: 41.311, lng: 69.279 };
     var mapEl = h("div", { class: "odx-map", id: "odx-map" });
-    var mapCard = h("div", { class: "card" }, [
+    var mapCard = h("div", { class: "card odx-map-card" }, [
       h("div", { class: "card__head" }, h("div", {}, [h("div", { class: "card__title", text: t("odx.location") }), h("div", { class: "card__subtitle", text: b0.city + ", " + b0.district })])),
       h("div", { class: "card__body" }, mapEl)
     ]);
@@ -724,6 +724,8 @@
         global.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 20, attribution: "© OpenStreetMap" }).addTo(m);
         global.L.circle([b0.lat, b0.lng], { radius: 120, color: "#1570ef", fillColor: "#1570ef", fillOpacity: 0.15, weight: 2 }).addTo(m);
         global.L.marker([b0.lat, b0.lng]).addTo(m).bindPopup("<b>" + org.name + "</b><br>" + b0.city + ", " + b0.district).openPopup();
+        // Karta balandligi flex orqali kartaga moslashadi — o'lchamni qayta hisoblash
+        setTimeout(function () { try { m.invalidateSize(); } catch (e) {} }, 120);
       } catch (e) {}
     }, 60);
 

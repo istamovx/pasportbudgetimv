@@ -550,6 +550,10 @@
 .odx-info__label { font-size: var(--text-sm); color: var(--text-tertiary); flex: none; }
 .odx-info__value { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); color: var(--text-primary); text-align: right; overflow-wrap: anywhere; min-width: 0; }
 .odx-map { height: 300px; border-radius: var(--radius-md); overflow: hidden; position: relative; z-index: 0; }
+/* Joylashuv kartasi: xarita karta balandligini to'liq egallaydi (yon ustunga tenglashadi) */
+.odx-map-card { display: flex; flex-direction: column; }
+.odx-map-card .card__body { flex: 1; display: flex; }
+.odx-map-card .odx-map { flex: 1; height: auto; min-height: 300px; width: 100%; }
 .odx-map--sm { height: 200px; margin-bottom: var(--spacing-lg); }
 .odx-donut { position: relative; width: 220px; margin: 0 auto var(--spacing-lg); }
 .odx-donut__center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
