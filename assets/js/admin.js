@@ -1515,22 +1515,21 @@
     var page = h("div", { class: "page" });
 
     // Breadcrumb: Bosh sahifa -> viloyat (-> tuman filtri); joyida yangilanadi
-    var crumbs = h("div", { class: "crumbs", style: "margin-bottom:var(--spacing-lg)" });
+    var crumbs = h("div", { style: "margin-bottom:var(--spacing-lg)" });
     function renderCrumbs() {
       crumbs.innerHTML = "";
-      crumbs.appendChild(h("button", { class: "crumbs__link", type: "button", onClick: function () { dashState.region = null; dashState.district = null; App.refresh(); } }, h("span", { text: t("dash.title") })));
-      crumbs.appendChild(h("span", { class: "crumbs__sep" }, UI.icon("chevron-right")));
+      var parts = [{ label: t("dash.title"), onClick: function () { dashState.region = null; dashState.district = null; App.refresh(); } }];
       if (dashState.district) {
-        crumbs.appendChild(h("button", { class: "crumbs__link", type: "button", onClick: function () {
+        parts.push({ label: regionName, onClick: function () {
           dashState.district = null;
           if (dmapWrap && dmapWrap._syncSel) dmapWrap._syncSel();
           syncChip(); renderCrumbs(); renderBody();
-        } }, h("span", { text: regionName })));
-        crumbs.appendChild(h("span", { class: "crumbs__sep" }, UI.icon("chevron-right")));
-        crumbs.appendChild(h("span", { class: "crumbs__cur", text: dashState.district }));
+        } });
+        parts.push({ label: dashState.district });
       } else {
-        crumbs.appendChild(h("span", { class: "crumbs__cur", text: regionName }));
+        parts.push({ label: regionName });
       }
+      crumbs.appendChild(UI.Crumbs(parts));
     }
     renderCrumbs();
     page.appendChild(crumbs);

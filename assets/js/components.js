@@ -345,6 +345,16 @@
   /* ---- Breadcrumbs: parts = [{label, onClick?}] — oxirgisi joriy sahifa ---- */
   function Crumbs(parts) {
     var row = h("nav", { class: "crumbs", "aria-label": "Breadcrumb" });
+    // Ortga tugmasi — doim bitta oldingi bosqichga (oxirgi bosiladigan qadamga) qaytaradi
+    var back = null;
+    for (var bi = parts.length - 2; bi >= 0; bi--) { if (parts[bi].onClick) { back = parts[bi].onClick; break; } }
+    if (back) {
+      row.appendChild(h("button", { class: "crumbs__backbtn", type: "button", title: t("common.back", "Ortga"), onClick: back }, [
+        icon("chevron-left"),
+        h("span", { text: t("common.back", "Ortga") })
+      ]));
+      row.appendChild(h("span", { class: "crumbs__divider" }));
+    }
     parts.forEach(function (p, i) {
       if (i) row.appendChild(h("span", { class: "crumbs__sep" }, icon("chevron-right")));
       row.appendChild(p.onClick
