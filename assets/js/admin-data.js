@@ -418,7 +418,71 @@
     }
   });
 
+  /* ---- Bino ma'lumotlari (Excel: completeness building_extra dan) ----
+     Har blok: kartada 3 tagacha asosiy ko'rsatkich, qolgani modalda. */
+  var BUILDING_EXTRA = {
+    name: "101-oilaviy poliklinika",
+    fill: { done: 46, total: 48 },
+    facts: { landArea: 13605, value: 3500000000, floors: 2, capacity: 100, built: 1982, renovated: 2022 },
+    blocks: [
+      { id: "umumiy", title: "Umumiy bino ma’lumoti", icon: "building", done: 46, total: 48, fields: [
+        ["Umumiy yer maydoni", "13 605 m²"], ["Qavatlar soni", "2"], ["Qiymati", "3,5 mlrd so‘m"],
+        ["Qurilgan yili", "1982"], ["Oxirgi ta’mirlangan yili", "2022"], ["Qurilish turi", "Rekonstruksiya"],
+        ["Foydalanishga topshirilgan", "2023"], ["Quruvchi", "“Stroymontaj invest” x/k"],
+        ["Quvvati", "100 o‘rin"], ["Bino turi", "Poliklinika"], ["Inventar raqami", "1"], ["Balans subschyoti", "1"],
+        ["Tasdiqlangan hudud maydoni", "13 605 m²"], ["Hujjat sanasi", "22.01.2014"],
+        ["Ro‘yxatga olgan organ", "Qumqo‘rg‘on tumani DXM"], ["Tibbiy bo‘lim", "Mavjud"],
+        ["Avtoturargoh sig‘imi", "0"], ["Kadastr raqami", "—"]
+      ] },
+      { id: "kommunal", title: "Bino kommunal-texnik ma’lumotlari", icon: "zap", done: 9, total: 9, fields: [
+        ["O‘ralganlik turi", "Metall panjara"], ["Tozalanadigan hudud", "3 861,78 m²"], ["Ko‘kalamzor maydon", "7 836 m²"],
+        ["Qurilish osti maydoni", "1 906 m²"], ["Beton qoplama", "3 861,78 m²"], ["Asfalt qilingan", "0 m²"],
+        ["Tashqi tozalanadigan", "3 861,78 m²"], ["Ichki tozalanadigan", "1 949,13 m²"], ["Foydali yer maydoni", "19,13 m²"]
+      ] },
+      { id: "elektr", title: "Elektr ta’minoti", icon: "zap", done: 6, total: 6, fields: [
+        ["Elektr ta’minoti turi", "Markazlashgan"], ["Yoritgichlar soni", "138"], ["Elektrik nuqtalar soni", "138"],
+        ["Rozetkalar soni", "108"], ["Hisoblagichlar soni", "2"], ["Kirish quvvati", "45 kVt"]
+      ] },
+      { id: "sovuq_suv", title: "Sovuq suv ta’minoti", icon: "map", done: 6, total: 6, fields: [
+        ["Ta’minot turi", "Markazlashgan"], ["Tarmoq uzunligi", "380 m"], ["Kranlar soni", "42"],
+        ["Hisoblagichlar soni", "1"], ["Quduqlar soni", "2"], ["Suv minorasi", "Yo‘q"]
+      ] },
+      { id: "issiq_suv", title: "Issiq suv ta’minoti", icon: "map", done: 3, total: 3, fields: [
+        ["Ta’minot turi", "Lokal qozonxona"], ["Tarmoq uzunligi", "240 m"], ["Hisoblagichlar soni", "1"]
+      ] },
+      { id: "issiqlik", title: "Issiqlik ta’minoti", icon: "zap", done: 4, total: 4, fields: [
+        ["Ta’minot turi", "Lokal qozonxona"], ["Qozonlar soni", "2"], ["Radiatorlar soni", "96"], ["Hisoblagichlar soni", "1"]
+      ] },
+      { id: "issiqxona", title: "Issiqxona isitish turi", icon: "zap", done: 1, total: 1, fields: [
+        ["Isitish turi", "Gaz"]
+      ] },
+      { id: "kanalizatsiya", title: "Kanalizatsiya ta’minoti", icon: "map", done: 2, total: 2, fields: [
+        ["Turi", "Markazlashgan"], ["Quduqlar soni", "4"]
+      ] },
+      { id: "telefon", title: "Telefon aloqasi", icon: "globe", done: 2, total: 2, fields: [
+        ["Tarmoq turi", "IP-telefoniya"], ["Nuqtalar soni", "12"]
+      ] },
+      { id: "internet", title: "Internet aloqasi", icon: "globe", done: 2, total: 2, fields: [
+        ["Ulanish turi", "Optik tola"], ["Tezligi", "100 Mbit/s"]
+      ] },
+      { id: "ovqat", title: "Ovqat uchun yoqilg‘i", icon: "zap", done: 2, total: 2, fields: [
+        ["Yoqilg‘i turi", "Gaz"], ["Plitalar soni", "3"]
+      ] },
+      { id: "qavatlar", title: "Qavatlar", icon: "building", done: 2, total: 2, fields: [
+        ["Qavatlar soni", "2"], ["Qavat balandligi", "3,2 m"]
+      ] },
+      { id: "xonalar", title: "Xonalar", icon: "grid", done: 9, total: 9, fields: [
+        ["Xonalar soni", "43"], ["Umumiy maydoni", "1 949,13 m²"], ["Keramik plita pollar", "667,68 m²"],
+        ["Linoleum pollar", "1 281,45 m²"], ["Zinalar maydoni", "68,17 m²"], ["Kutubxonalar", "Yo‘q"],
+        ["Oziq-ovqat ombori", "Yo‘q"], ["Dori-darmon ombori", "Yo‘q"], ["Yoqilg‘i ombori", "Yo‘q"]
+      ] },
+      { id: "liftlar", title: "Liftlar", icon: "up", done: 0, total: 0, fields: [] },
+      { id: "ijara", title: "Bino ijara ma’lumotlari", icon: "wallet", done: 0, total: 0, fields: [] }
+    ]
+  };
+
   global.ADMIN_DATA = {
+    buildingExtra: BUILDING_EXTRA,
     mapRegionNames: MAP_REGION_NAMES,
     buildings: BUILDINGS,
     buildingTypes: B_TYPES,

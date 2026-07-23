@@ -112,7 +112,8 @@
             ]);
           } }
         ],
-        rows: items
+        rows: items,
+        onRow: function (r) { App.openOrgDetail(r); }
       }))));
       results.appendChild(App.pager(orgState, total, pages, renderResults));
     }
@@ -336,7 +337,8 @@
               } });
             } }
           ],
-          rows: AD().sohalar
+          rows: AD().sohalar,
+          onRow: function (r) { conState.soha = r; conState.dir = r.directions[0]; conState.menu = null; conState.sub = null; renderRoot(); }
         })));
         host.appendChild(grid);
         return;
@@ -564,6 +566,7 @@
       ],
       rows: AD().orgDetail.assets
     });
+    if (odState.view === "binoextra") return buildingExtraView();
     if (odState.view === "transport") return integrationTable({
       title: "Transport vositalari (YHXBB)",
       cols: [
@@ -839,6 +842,23 @@
     if ((!td.sections || !td.sections.length) && (!td.integrations || !td.integrations.length)) {
       wrap.appendChild(UI.EmptyState({ icon: "inbox" }));
     }
+    // Joylashuv tabida: binolar ro'yxati (bino ma'lumotlariga kirish)
+    if (td.id === "joylashuv") {
+      var bx = AD().buildingExtra;
+      wrap.appendChild(h("div", { class: "staff-group-heading", text: t("bx.buildings") }));
+      wrap.appendChild(h("div", { class: "od-secs" }, [
+        h("button", { class: "od-int card is-loaded is-clickable", type: "button", onClick: function () { odState.view = "binoextra"; App.refresh(); } }, [
+          h("div", { class: "od-int__top" }, [
+            h("span", { class: "od-int__dot" }),
+            h("span", { class: "od-int__title", text: bx.name }),
+            h("span", { class: "badge badge--dotless badge--success", text: bx.fill.done + " / " + bx.fill.total })
+          ]),
+          h("div", { class: "od-int__sub", text: Fmt.num(bx.facts.landArea) + " m² · " + bx.facts.floors + " qavat · " + bx.facts.built + " y." }),
+          h("span", { class: "od-int__chev" }, UI.icon("chevron-right"))
+        ])
+      ]));
+    }
+
     // Tashkilot rolidagi tegishli sahifani to'liq ko'rsatish
     var ORG_SECTION_MAP = { umumiy: "general", joylashuv: "location", kadrlar: "staff", mtb: "material", kommunal: "utilities", qarzlar: "debts", mib: "mib" };
     var secId = ORG_SECTION_MAP[td.id];
@@ -854,6 +874,76 @@
       }
     }
     return wrap;
+  }
+
+  /* Bino ma'lumotlari — kartada 3 tagacha ko'rsatkich, ko'pi modalda */
+  function buildingExtraView() {
+    var bx = AD().buildingExtra;
+    var page = h("div", { class: "page" });
+
+    page.appendChild(h("div", { class: "crumbs", style: "margin-bottom:var(--spacing-lg)" }, [
+      h("button", { class: "crumbs__link", type: "button", onClick: function () { odState.view = null; App.refresh(); } }, h("span", { text: t("bx.back") })),
+      h("span", { class: "crumbs__sep" }, UI.icon("chevron-right")),
+      h("span", { class: "crumbs__cur", text: bx.name })
+    ]));
+
+    page.appendChild(h("div", { class: "page__head flex justify-between items-start gap-lg flex-wrap" }, [
+      h("div", {}, [
+        h("h1", { class: "page__title", text: bx.name }),
+        h("p", { class: "page__desc", text: t("bx.desc") })
+      ]),
+      h("div", { class: "flex items-center gap-md" }, [
+        h("span", { class: "badge badge--dotless badge--success", text: t("odx.kpi.fill") + ": " + bx.fill.done + " / " + bx.fill.total })
+      ])
+    ]));
+
+    // KPI qatori (Exceldagi asosiy raqamlar)
+    page.appendChild(h("div", { class: "section" }, h("div", { class: "cols", style: "--cols:4;--cols-md:2" }, [
+      App.kpi("map", t("dash.kpi.area"), Fmt.num(bx.facts.landArea) + " m²", null, ""),
+      App.kpi("wallet", t("bx.value"), "3,5 mlrd", null, "ok"),
+      App.kpi("building", t("bx.floors"), bx.facts.floors, null, ""),
+      App.kpi("refresh", t("dash.col.renovated"), bx.facts.renovated, null, "warn")
+    ])));
+
+    // Bloklar — sohalar kartasi uslubida
+    page.appendChild(h("div", { class: "soha-grid" }, bx.blocks.map(function (bl, i) {
+      var card = h("div", { class: "soha-card card bx-card" });
+      card.appendChild(h("div", { class: "soha-card__head" }, [
+        h("span", { class: "soha-card__tile", style: "background:var(--chart-" + ((i % 6) + 1) + ")" }, UI.icon(bl.icon || "box")),
+        h("span", { class: "soha-card__name", text: bl.title }),
+        h("span", { class: "bx-card__pill " + (bl.total === 0 ? "od-pill--zero" : bl.done >= bl.total ? "od-pill--ok" : "od-pill--n"), text: bl.done + "/" + bl.total })
+      ]));
+      if (!bl.fields.length) {
+        card.appendChild(h("div", { class: "bx-card__empty", text: t("bx.none") }));
+        return card;
+      }
+      card.appendChild(h("div", { class: "soha-card__stats" }, bl.fields.slice(0, 3).map(function (f) {
+        return h("div", { class: "soha-card__stat" }, [
+          h("span", { class: "soha-card__stat-l", text: f[0] }),
+          h("b", { class: "soha-card__stat-v bx-card__val", text: f[1] })
+        ]);
+      })));
+      if (bl.fields.length > 3) {
+        card.appendChild(h("div", { class: "bx-card__more" },
+          UI.Button({ label: t("bx.view_all") + " (" + bl.fields.length + ")", variant: "secondary", size: "sm", icon: "eye", onClick: function () { openBlockModal(bl); } })));
+      }
+      return card;
+    })));
+    return page;
+
+    function openBlockModal(bl) {
+      UI.openModal({
+        size: "sm",
+        title: bl.title,
+        desc: bx.name + " · " + bl.done + "/" + bl.total + " " + t("od.fields"),
+        body: h("div", { class: "bx-modal-rows" }, bl.fields.map(function (f) {
+          return h("div", { class: "odx-info__row" }, [
+            h("span", { class: "odx-info__label", text: f[0] }),
+            h("span", { class: "odx-info__value", text: f[1] })
+          ]);
+        }))
+      });
+    }
   }
 
   /* Integratsiya jadvali (drill-in sahifa) */
@@ -1369,7 +1459,8 @@
           } }
         ],
         rows: rows,
-        empty: { icon: "building" }
+        empty: { icon: "building" },
+        onRow: function (r) { openBuildingDrawer(r); }
       }))));
     }
     function chip(label, count, active, onClick) {
@@ -1464,8 +1555,8 @@
     return row;
   }
 
-  function drillTable(cols, rows) {
-    return h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" }, UI.DataTable({ sticky: true, columns: cols, rows: rows })));
+  function drillTable(cols, rows, onRow) {
+    return h("div", { class: "card" }, h("div", { class: "card__body card__body--flush" }, UI.DataTable({ sticky: true, columns: cols, rows: rows, onRow: onRow })));
   }
 
   function sohaDetailPage(s) {
@@ -1495,7 +1586,8 @@
         { key: "act", label: "", sticky: "right", render: function (r) {
           return UI.Button({ icon: "chevron-right", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { st.region = r.name; App.refresh(); } });
         } }
-      ], regionList.map(function (rn, ri) { var x = sohaRegionStats(si, ri); return { name: rn, orgs: x.orgs, buildings: x.buildings, staff: x.staff }; }))));
+      ], regionList.map(function (rn, ri) { var x = sohaRegionStats(si, ri); return { name: rn, orgs: x.orgs, buildings: x.buildings, staff: x.staff }; }),
+        function (r) { st.region = r.name; App.refresh(); })));
       return page;
     }
 
@@ -1520,7 +1612,8 @@
         { key: "act", label: "", sticky: "right", render: function (r) {
           return UI.Button({ icon: "chevron-right", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { st.district = r.name; App.refresh(); } });
         } }
-      ], districts.map(function (dn, di) { var x = sohaDistrictStats(si, ri, di); return { name: dn, orgs: x.orgs, buildings: x.buildings, staff: x.staff }; }))));
+      ], districts.map(function (dn, di) { var x = sohaDistrictStats(si, ri, di); return { name: dn, orgs: x.orgs, buildings: x.buildings, staff: x.staff }; }),
+        function (r) { st.district = r.name; App.refresh(); })));
       return page;
     }
 
@@ -1547,7 +1640,7 @@
           App.openOrgDetail({ name: r.name, stir: r.stir, region: st.region, type: s.name });
         } });
       } }
-    ], orgs)));
+    ], orgs, function (r) { App.openOrgDetail({ name: r.name, stir: r.stir, region: st.region, type: s.name }); })));
     return page;
   }
 

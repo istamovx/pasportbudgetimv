@@ -1832,7 +1832,8 @@
             return UI.Button({ icon: "eye", variant: "secondary", size: "sm", title: t("common.view", "Ko‘rish"), onClick: function () { global.App.openOrgDetail(r); } });
           } }
         ],
-        rows: items
+        rows: items,
+        onRow: function (r) { global.App.openOrgDetail(r); }
       }))));
       results.appendChild(orgListPager(admOrgsState, total, pages, renderResults));
     }
